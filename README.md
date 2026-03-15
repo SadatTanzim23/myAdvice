@@ -1,0 +1,2 @@
+# <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Objects/Books.webp" alt="Books" width="40" height="40" /> myAdvice
+A Java-based Student Advising System. The system designed to advise undergraduate Computer Science students on aspects of their program and to help faculty, staff, and/or students to perform various important functions such as timetabling, booking advising appointments, and maintaining the system.
