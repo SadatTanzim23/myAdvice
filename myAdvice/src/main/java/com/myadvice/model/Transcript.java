@@ -2,29 +2,33 @@ package com.myadvice.model;
 
 import jakarta.persistence.*;
 
-@Entity
+@Entity //Class is a database table
 public class Transcript {
 
-    @Id
+    @Id //Primary key
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne
+    @ManyToOne //Many transcripts can be linked to same student
     @JoinColumn(name = "student_id", nullable = false)
     private Student student;
 
-    @ManyToOne
+    @ManyToOne //Many transcripts can be linked to same course
     @JoinColumn(name = "course_id", nullable = false)
     private Course course;
 
+    //Can't be empty
     @Column(nullable = false)
     private Double grade;
 
+    //Can't be empty
     @Column(nullable = false)
     private String term;
 
+    //Empty constructor
     public Transcript() {}
 
+    //Full constructor
     public Transcript(Student student, Course course, Double grade, String term) {
         this.student = student;
         this.course = course;
@@ -32,6 +36,7 @@ public class Transcript {
         this.term = term;
     }
 
+    //Getters and Setters
     public Long getId() {
         return id;
     }

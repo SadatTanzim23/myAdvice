@@ -3,10 +3,10 @@ package com.myadvice.model;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
-@Entity
+@Entity //Class is a database table
 public class Appointment {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Id //Primary key
+    @GeneratedValue(strategy = GenerationType.IDENTITY) //Auto-increments
     private Long id;
 
     @ManyToOne //Many appointments can be connected to one student
@@ -20,11 +20,14 @@ public class Appointment {
     @Column(name = "date_time", nullable = false)
     private LocalDateTime dateTime; //LocalDateTime holds both date and time together ex. 2026-03-17 15:30
 
+    //Appointment status (Ex. "cancelled")
     @Column(nullable = false)
     private String status;
 
+    //Empty constructor
     public Appointment() {}
 
+    //Full constructor
     public Appointment(Student student, Faculty faculty, LocalDateTime dateTime, String status) {
         this.student = student;
         this.faculty = faculty;
@@ -32,6 +35,7 @@ public class Appointment {
         this.status = status;
     }
 
+    //Setters and Getters
     public Long getId() {
         return id;
     }

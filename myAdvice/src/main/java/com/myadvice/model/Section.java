@@ -2,10 +2,10 @@ package com.myadvice.model;
 
 import jakarta.persistence.*;
 
-@Entity
+@Entity //Class is a database table
 public class Section {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Id //Primary key
+    @GeneratedValue(strategy = GenerationType.IDENTITY) //Auto-increments
     private Long id;
 
     @ManyToOne //Many sections can be linked to same course
@@ -16,17 +16,22 @@ public class Section {
     @JoinColumn(name = "faculty_id", nullable = false)
     private Faculty faculty;
 
+    //Column name, can't be empty
     @Column(name = "section_number", nullable = false)
     private String sectionNumber;
 
+    //Can't be empty
     @Column(nullable = false)
     private Integer capacity;
 
+    //Column name, can't be empty
     @Column(name = "enrolled_count", nullable = false)
     private Integer enrolledCount;
 
+    //Empty constructor
     public Section() {}
 
+    //Full constructor
     public Section(Course course, Faculty faculty, String sectionNumber, Integer capacity, Integer enrolledCount) {
         this.course = course;
         this.faculty = faculty;
@@ -35,6 +40,7 @@ public class Section {
         this.enrolledCount = enrolledCount;
     }
 
+    //Getters and Setters
     public Long getId() {
         return id;
     }

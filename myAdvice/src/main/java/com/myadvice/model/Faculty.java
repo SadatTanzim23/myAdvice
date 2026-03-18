@@ -22,6 +22,7 @@ public class Faculty {
 
     public Faculty() {} //Empty constructor JPA needs to create Faculty objects
 
+    //Full constructor
     public Faculty(String firstName, String lastName, String email, String department) { //Creates new faculty with data
         this.firstName = firstName;
         this.lastName = lastName;
@@ -29,6 +30,7 @@ public class Faculty {
         this.department = department;
     }
 
+    //Getters and Setters
     public Long getId() {
         return id;
     }
