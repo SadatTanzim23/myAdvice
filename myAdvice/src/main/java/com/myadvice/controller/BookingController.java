@@ -6,6 +6,7 @@ import com.myadvice.service.BookingService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController //Marks it as a REST controller (handle incoming requests from UI)
@@ -54,7 +55,11 @@ public class BookingController {
         bookingService.cancelAppointment(appointmentId);
     }
 
-
-
-
+    //Endpoint to reschedule existing appointment with new date and time (PUT /bookings/reschedule/{appointmentId}
+    //Handles PUT requests to update existing data
+    @PutMapping("/reschedule/{appointmentId}")
+    public Appointment rescheduleAppointment(@PathVariable("appointmentId") Long appointmentId, //Gets appointment ID from URL
+                                             @RequestBody LocalDateTime newDateTime){ //Receives new date and time from request body
+        return bookingService.rescheduleAppointment(appointmentId, newDateTime); //Returns updated appointment
+    }
 }
