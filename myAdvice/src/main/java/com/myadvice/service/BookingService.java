@@ -15,13 +15,13 @@ import java.time.LocalDateTime;
 @Service //Marks class as a service (business logic)
 public class BookingService {
 
-    @Autowired //Allows usage of Appointment repository commands
+    @Autowired //No need to create AppointmentRepository manually (Spring does it auto)
     private AppointmentRepository appointmentRepository;
 
-    @Autowired //Allows usage of Student repository commands
+    @Autowired //No need to create StudentRepository manually
     private StudentRepository studentRepository;
 
-    @Autowired //Allows usage of Faculty repository commands
+    @Autowired //No need to create FacultyRepository manually
     private FacultyRepository facultyRepository;
 
     //Creates new appointment between a student and faculty member
