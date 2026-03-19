@@ -1,0 +1,315 @@
+/*M!999999\- enable the sandbox mode */ 
+-- MariaDB dump 10.19-12.2.2-MariaDB, for Win64 (AMD64)
+--
+-- Host: localhost    Database: myadvicedatabase
+-- ------------------------------------------------------
+-- Server version	12.2.2-MariaDB
+
+/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
+/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
+/*!40101 SET NAMES utf8mb4 */;
+/*!40103 SET @OLD_TIME_ZONE=@@TIME_ZONE */;
+/*!40103 SET TIME_ZONE='+00:00' */;
+/*!40014 SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0 */;
+/*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
+/*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
+/*M!100616 SET @OLD_NOTE_VERBOSITY=@@NOTE_VERBOSITY, NOTE_VERBOSITY=0 */;
+
+--
+-- Table structure for table `appointment`
+--
+
+DROP TABLE IF EXISTS `appointment`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `appointment` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `student_id` bigint(20) NOT NULL,
+  `faculty_id` bigint(20) NOT NULL,
+  `date_time` datetime NOT NULL,
+  `status` varchar(255) NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `student_id` (`student_id`),
+  KEY `faculty_id` (`faculty_id`),
+  CONSTRAINT `1` FOREIGN KEY (`student_id`) REFERENCES `student` (`id`),
+  CONSTRAINT `2` FOREIGN KEY (`faculty_id`) REFERENCES `faculty` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `appointment`
+--
+
+SET @OLD_AUTOCOMMIT=@@AUTOCOMMIT, @@AUTOCOMMIT=0;
+LOCK TABLES `appointment` WRITE;
+/*!40000 ALTER TABLE `appointment` DISABLE KEYS */;
+/*!40000 ALTER TABLE `appointment` ENABLE KEYS */;
+UNLOCK TABLES;
+COMMIT;
+SET AUTOCOMMIT=@OLD_AUTOCOMMIT;
+
+--
+-- Table structure for table `course`
+--
+
+DROP TABLE IF EXISTS `course`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `course` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `course_code` varchar(255) NOT NULL,
+  `course_name` varchar(255) NOT NULL,
+  `credits` int(11) NOT NULL,
+  `description` varchar(255) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `course_code` (`course_code`),
+  UNIQUE KEY `course_name` (`course_name`)
+) ENGINE=InnoDB AUTO_INCREMENT=29 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `course`
+--
+
+SET @OLD_AUTOCOMMIT=@@AUTOCOMMIT, @@AUTOCOMMIT=0;
+LOCK TABLES `course` WRITE;
+/*!40000 ALTER TABLE `course` DISABLE KEYS */;
+INSERT INTO `course` VALUES
+(1,'COMP 1400','Introduction to Algorithms and Programming I',3,'This course is the first of a two-course sequence designed to introduce students to algorithm design and programming in a high-level language such as C.'),
+(2,'COMP 1410','Introduction to Algorithms and Programming II',3,'This course is the continuation of COMP-1400 that introduces students to more advanced algorithm design and programming in a high level language such as C.'),
+(3,'MATH 1020','Mathematical Foundations',3,'This course will cover mathematical logic, proof methods and development of proof techniques, mathematical induction, sets, equivalence relations, partial ordering relations and functions'),
+(5,'MATH 1250','Linear Algebra I',3,'This course will cover linear systems, matrix algebra, determinants, n-dimensional vectors, dot product, cross product, orthogonalization, eigenvalues, eigenvectors, diagonalization and vector spaces.'),
+(6,'MATH 1260','Vectors and Linear Algebra',3,'This course is for students without Ontario Grade 12 Calculus and Vectors (MCV4U). The course MATH- 1250 is for students with MCV4U.'),
+(7,'MATH 1720','Differential Calculus',3,'This course is for students who have taken both Ontario Grade 12 Advanced Functions (MHF4U) and Ontario Grade 12 Calculus and Vectors (MCV4U).'),
+(8,'MATH 1730','Integral Calculus',3,'Continuation of Differential Calculus'),
+(9,'COMP 2120','Object-Oriented Programming Using Java',3,'Concepts of classes and objects, Java applications, frames, event handling, control structures, methods, arrays, string manipulations, object-based programming, object-oriented programming'),
+(10,'COMP 2140','Computer Languages, Grammars, and Translators',3,'Pragmatic and theoretical aspects of grammars, recognizers, and translators for computer languages will be discussed.'),
+(11,'COMP 2310','Theoretical Foundations of Computer Science',3,'An introduction to Mathematical Logic, Set Theory, and Graph Theory.'),
+(12,'COMP 2540','Data Structures and Algorithms',3,'An introduction to the programming and analysis of linear and non-linear internal (main store) data structures and associated algorithms.'),
+(13,'COMP 2560','Systems Programming',3,'This course introduces students to advanced software development techniques in system programming using the C language in the UNIX environment.'),
+(14,'COMP 2660','Computer Architecture II: Microprocessor Programming',3,'This course uses microprocessor programming to explore the structure of a CPU and related components.'),
+(15,'STAT 2910','Statistics for the Sciences',3,'This course will cover descriptive statistics, probability, discrete and continuous distributions, point and interval estimation, hypothesis testing, goodness-of-fit and contingency tables.'),
+(17,'STAT 2920','Introduction to Probability',3,'This course will cover descriptive measures, combinatorics, probability, random variables, special discrete and continuous distributions, sampling distribution, and point and interval estimation.'),
+(18,'COMP 3110','Introduction to Software Engineering',3,'This course introduces the fundamental concepts, common principles, and general techniques of software engineering.'),
+(19,'COMP 3150','Database Management Systems',3,'This course will acquaint students with the Basic concepts of Database Systems.'),
+(20,'COMP 3220','Object-Oriented Software Analysis and Design',3,'This course builds on the knowledge of object-oriented programming, data structures, systems programming.'),
+(21,'COMP 3300','Operating Systems Fundamentals',3,'Operating system services, introduction to primary components of multi-programming operating systems'),
+(22,'COMP 3540','Theory of Computation',3,'Finite Automata, regular expressions and languages'),
+(23,'COMP 3670','Computer Networks',3,'This course is an introduction to computer networks and their protocols.'),
+(24,'MATH 3940','Numerical Analysis for Computer Scientists',3,'This course is an introduction to the applications of numerical methods using computer-oriented algorithms'),
+(25,'MATH 3800','Numerical Methods',3,'This course will cover iterative solution methods for nonlinear equations'),
+(26,'COMP 4400','Principles of Programming Languages',3,'Basic concepts of programming languages.'),
+(27,'COMP 4540','Design and analysis of Computer Algorithms',3,'The intent of this course is to introduce the fundamental techniques in the design and analysis of computer algorithms.'),
+(28,'COMP 4990','Project Management: Techniques and Tools',3,'This course requires students to complete an application development project in some area of Computer Science under the supervision of a faculty member.');
+/*!40000 ALTER TABLE `course` ENABLE KEYS */;
+UNLOCK TABLES;
+COMMIT;
+SET AUTOCOMMIT=@OLD_AUTOCOMMIT;
+
+--
+-- Table structure for table `faculty`
+--
+
+DROP TABLE IF EXISTS `faculty`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `faculty` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `first_name` varchar(255) NOT NULL,
+  `last_name` varchar(255) NOT NULL,
+  `email` varchar(255) NOT NULL,
+  `department` varchar(255) NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `email` (`email`)
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `faculty`
+--
+
+SET @OLD_AUTOCOMMIT=@@AUTOCOMMIT, @@AUTOCOMMIT=0;
+LOCK TABLES `faculty` WRITE;
+/*!40000 ALTER TABLE `faculty` DISABLE KEYS */;
+INSERT INTO `faculty` VALUES
+(1,'Margaret','Garabon','garabon@uwindsor.ca','School of Computer Science'),
+(2,'Ghada','Guarini','csinfo@uwindsor.ca','School of Computer Science'),
+(3,'Andreas','Maniatis','Andreas.Maniatis@uwindsor.ca','School of Computer Science');
+/*!40000 ALTER TABLE `faculty` ENABLE KEYS */;
+UNLOCK TABLES;
+COMMIT;
+SET AUTOCOMMIT=@OLD_AUTOCOMMIT;
+
+--
+-- Table structure for table `program`
+--
+
+DROP TABLE IF EXISTS `program`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `program` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `name` varchar(255) NOT NULL,
+  `department` varchar(255) NOT NULL,
+  `total_credits` int(11) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `program`
+--
+
+SET @OLD_AUTOCOMMIT=@@AUTOCOMMIT, @@AUTOCOMMIT=0;
+LOCK TABLES `program` WRITE;
+/*!40000 ALTER TABLE `program` DISABLE KEYS */;
+/*!40000 ALTER TABLE `program` ENABLE KEYS */;
+UNLOCK TABLES;
+COMMIT;
+SET AUTOCOMMIT=@OLD_AUTOCOMMIT;
+
+--
+-- Table structure for table `schedule`
+--
+
+DROP TABLE IF EXISTS `schedule`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `schedule` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `course_id` bigint(20) NOT NULL,
+  `day_of_week` varchar(50) NOT NULL,
+  `start_time` time NOT NULL,
+  `end_time` time NOT NULL,
+  `room_number` varchar(50) NOT NULL,
+  `term` varchar(50) NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `course_id` (`course_id`),
+  CONSTRAINT `1` FOREIGN KEY (`course_id`) REFERENCES `course` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `schedule`
+--
+
+SET @OLD_AUTOCOMMIT=@@AUTOCOMMIT, @@AUTOCOMMIT=0;
+LOCK TABLES `schedule` WRITE;
+/*!40000 ALTER TABLE `schedule` DISABLE KEYS */;
+/*!40000 ALTER TABLE `schedule` ENABLE KEYS */;
+UNLOCK TABLES;
+COMMIT;
+SET AUTOCOMMIT=@OLD_AUTOCOMMIT;
+
+--
+-- Table structure for table `section`
+--
+
+DROP TABLE IF EXISTS `section`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `section` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `course_id` bigint(20) NOT NULL,
+  `faculty_id` bigint(20) NOT NULL,
+  `section_number` varchar(50) NOT NULL,
+  `capacity` int(11) NOT NULL,
+  `enrolled_count` int(11) NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `course_id` (`course_id`),
+  KEY `faculty_id` (`faculty_id`),
+  CONSTRAINT `1` FOREIGN KEY (`course_id`) REFERENCES `course` (`id`),
+  CONSTRAINT `2` FOREIGN KEY (`faculty_id`) REFERENCES `faculty` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `section`
+--
+
+SET @OLD_AUTOCOMMIT=@@AUTOCOMMIT, @@AUTOCOMMIT=0;
+LOCK TABLES `section` WRITE;
+/*!40000 ALTER TABLE `section` DISABLE KEYS */;
+/*!40000 ALTER TABLE `section` ENABLE KEYS */;
+UNLOCK TABLES;
+COMMIT;
+SET AUTOCOMMIT=@OLD_AUTOCOMMIT;
+
+--
+-- Table structure for table `student`
+--
+
+DROP TABLE IF EXISTS `student`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `student` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `first_name` varchar(255) NOT NULL,
+  `last_name` varchar(255) NOT NULL,
+  `email` varchar(255) NOT NULL,
+  `student_number` varchar(255) NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `email` (`email`),
+  UNIQUE KEY `student_number` (`student_number`)
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `student`
+--
+
+SET @OLD_AUTOCOMMIT=@@AUTOCOMMIT, @@AUTOCOMMIT=0;
+LOCK TABLES `student` WRITE;
+/*!40000 ALTER TABLE `student` DISABLE KEYS */;
+INSERT INTO `student` VALUES
+(1,'Student','One','studentone@email.com','1234567'),
+(2,'Studenta','Two','studenttwo@email.com','12245567');
+/*!40000 ALTER TABLE `student` ENABLE KEYS */;
+UNLOCK TABLES;
+COMMIT;
+SET AUTOCOMMIT=@OLD_AUTOCOMMIT;
+
+--
+-- Table structure for table `transcript`
+--
+
+DROP TABLE IF EXISTS `transcript`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `transcript` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `student_id` bigint(20) NOT NULL,
+  `course_id` bigint(20) NOT NULL,
+  `grade` double NOT NULL,
+  `term` varchar(50) NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `student_id` (`student_id`),
+  KEY `course_id` (`course_id`),
+  CONSTRAINT `1` FOREIGN KEY (`student_id`) REFERENCES `student` (`id`),
+  CONSTRAINT `2` FOREIGN KEY (`course_id`) REFERENCES `course` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `transcript`
+--
+
+SET @OLD_AUTOCOMMIT=@@AUTOCOMMIT, @@AUTOCOMMIT=0;
+LOCK TABLES `transcript` WRITE;
+/*!40000 ALTER TABLE `transcript` DISABLE KEYS */;
+/*!40000 ALTER TABLE `transcript` ENABLE KEYS */;
+UNLOCK TABLES;
+COMMIT;
+SET AUTOCOMMIT=@OLD_AUTOCOMMIT;
+/*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
+
+/*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
+/*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
+/*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+/*M!100616 SET NOTE_VERBOSITY=@OLD_NOTE_VERBOSITY */;
+
+-- Dump completed on 2026-03-18 20:54:36
