@@ -2,6 +2,9 @@ package com.myadvice.model;
 
 import jakarta.persistence.*;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Entity //Class as database table
 public class Course {
 
@@ -21,6 +24,14 @@ public class Course {
     @Column(nullable = false)
     private Integer credits;
 
+
+    @ManyToMany
+    @JoinTable(
+            name = "course_prerequisites",
+            joinColumns = @JoinColumn(name="course_id"),
+            inverseJoinColumns = @JoinColumn(name="prerequisite_id")
+    )
+    private List<Course> prerequisites = new ArrayList<>();
 
     //Course description
     private String description;
@@ -68,5 +79,12 @@ public class Course {
         this.description = description;
     }
 
+    public List<Course> getPrerequisites() {
+        return prerequisites;
+    }
+
+    public void setPrerequisites(List<Course> prerequisites) {
+        this.prerequisites = prerequisites;
+    }
 
 }
