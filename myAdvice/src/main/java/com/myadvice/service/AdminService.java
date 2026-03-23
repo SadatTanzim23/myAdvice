@@ -35,7 +35,7 @@ public class AdminService {
         return courseRepository.save(existing);
     }
 
-    public void removeCourse(Long id){
+    public void deleteCourse(Long id){
         // Check if course exists, or throw an exception if not
         courseRepository.findById(id).orElseThrow(() -> new RuntimeException("Course not found"));
         // Delete course from the database
