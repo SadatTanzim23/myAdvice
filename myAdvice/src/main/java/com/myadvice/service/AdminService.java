@@ -1,13 +1,7 @@
 package com.myadvice.service;
 
-import com.myadvice.model.Course;
-import com.myadvice.model.Faculty;
-import com.myadvice.model.Schedule;
-import com.myadvice.model.Section;
-import com.myadvice.repository.CourseRepository;
-import com.myadvice.repository.ScheduleRepository;
-import com.myadvice.repository.SectionRepository;
-import com.myadvice.repository.TranscriptRepository;
+import com.myadvice.model.*;
+import com.myadvice.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -147,5 +141,26 @@ public class AdminService {
         schedule.setTerm(updatedSchedule.getTerm());
         return scheduleRepository.save(schedule);
     }
+
+    public Transcript addTranscript(Student student, Course course, Double grade, String term){
+        Transcript transcript = new Transcript(student, course, grade, term);
+        transcriptRepository.save(transcript);
+        return transcript;
+    }
+
+    public void removeTranscript(Long id){
+        Transcript transcript = transcriptRepository.findById(id).orElseThrow(() -> new RuntimeException("Transcript not found"));
+        transcriptRepository.delete(transcript);
+    }
+
+    public Transcript editTranscript(Long id, Transcript updatedTranscript){
+        Transcript transcript = transcriptRepository.findById(id).orElseThrow(() -> new RuntimeException("Transcript not found"));
+        transcript.setStudent(updatedTranscript.getStudent());
+        transcript.setCourse(updatedTranscript.getCourse());
+        transcript.setGrade(updatedTranscript.getGrade());
+        transcript.setTerm(updatedTranscript.getTerm());
+        return transcriptRepository.save(transcript);
+    }
+
 
 }
