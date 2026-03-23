@@ -5,6 +5,8 @@ import com.myadvice.service.AdminService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController //Marks it as a REST controller (handle incoming requests from UI)
 @RequestMapping("/admin") // Set base URL for all endpoints to start with
 public class AdminController {
@@ -37,4 +39,21 @@ public class AdminController {
         adminService.deleteCourse(id);
     }
 
+    // Endpoint to add a prerequisite to a course
+    @PostMapping("/courses/{courseId}/prerequisites/add/{prerequisiteId}")
+    public Course addPrerequisite(@PathVariable("courseId") Long courseId, @PathVariable("prerequisiteId") Long prerequisiteId){
+        return adminService.addPrerequisite(courseId, prerequisiteId);
+    }
+
+    // Endpoint to remove a prerequisite from a course
+    @DeleteMapping("/courses/{courseId}/prerequisites/remove/{prerequisiteId}")
+    public Course removePrerequisite(@PathVariable("courseId") Long courseId, @PathVariable("prerequisiteId") Long prerequisiteId){
+        return adminService.removePrerequisite(courseId, prerequisiteId);
+    }
+
+    // Endpoint to view all prerequisites for a course
+    @GetMapping("/courses/{courseId}/prerequisites")
+    public List<Course> viewPrerequisites(@PathVariable("courseId") Long courseId){
+        return adminService.viewPrerequisites(courseId);
+    }
 }
