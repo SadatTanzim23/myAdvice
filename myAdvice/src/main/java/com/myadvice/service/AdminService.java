@@ -1,10 +1,17 @@
 package com.myadvice.service;
 
 import com.myadvice.model.Course;
+import com.myadvice.model.Faculty;
+import com.myadvice.model.Schedule;
+import com.myadvice.model.Section;
 import com.myadvice.repository.CourseRepository;
+import com.myadvice.repository.ScheduleRepository;
+import com.myadvice.repository.SectionRepository;
+import com.myadvice.repository.TranscriptRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalTime;
 import java.util.List;
 
 @Service
@@ -12,6 +19,15 @@ public class AdminService {
 
     @Autowired
     private CourseRepository courseRepository;
+
+    @Autowired
+    private SectionRepository sectionRepository;
+
+    @Autowired
+    private TranscriptRepository transcriptRepository;
+
+    @Autowired
+    private ScheduleRepository scheduleRepository;
 
     // Add a new course to the database
     public Course addCourse(Course course){
@@ -84,4 +100,52 @@ public class AdminService {
         // Return the list of prerequisites for the course
         return course.getPrerequisites();
     }
+
+    public Section addSection(Course course, Faculty faculty, String sectionNumber, Integer capacity, Integer enrolledCount, String instructorName, String dayOfWeek){
+        Section newSectionToAdd = new Section(course, faculty, sectionNumber, capacity, enrolledCount, instructorName, dayOfWeek);
+        sectionRepository.save(newSectionToAdd);
+        return newSectionToAdd; // return newly added section
+    }
+
+    public Section removeSection(Long id){
+        Section section = sectionRepository.findById(id).orElseThrow(() -> new RuntimeException("Section not found"));
+        sectionRepository.delete(section);
+        return section; // return deleted section
+    }
+
+    public Section editSection(Long id, Section updatedSection){
+        Section sectionToEdit = sectionRepository.findById(id).orElseThrow(() -> new RuntimeException("Section not found"));
+        sectionToEdit.setCourse(updatedSection.getCourse());
+        sectionToEdit.setFaculty(updatedSection.getFaculty());
+        sectionToEdit.setSectionNumber(updatedSection.getSectionNumber());
+        sectionToEdit.setCapacity(updatedSection.getCapacity());
+        sectionToEdit.setEnrolledCount(updatedSection.getEnrolledCount());
+        sectionToEdit.setInstructorName(updatedSection.getInstructorName());
+        sectionToEdit.setDayOfWeek(updatedSection.getDayOfWeek());
+        return sectionRepository.save(sectionToEdit);
+    }
+
+    public Schedule addSchedule(Course course, String dayOfWeek, LocalTime startTime, java.time.LocalTime endTime, String roomNumber, String term){
+        Schedule schedule = new Schedule(dayOfWeek, startTime, endTime, roomNumber,  term);
+        schedule.setCourse(course);
+        scheduleRepository.save(schedule);
+        return schedule; // return newly added schedule
+    }
+
+    public Schedule removeSchedule(Long id){
+        Schedule schedule = scheduleRepository.findById(id).orElseThrow(() -> new RuntimeException("Schedule not found"));
+        scheduleRepository.delete(schedule);
+        return schedule;
+    }
+    public Schedule editSchedule(Course course, Long id, Schedule updatedSchedule){
+        Schedule schedule = scheduleRepository.findById(id).orElseThrow(() -> new RuntimeException("Schedule not found"));
+       schedule.setCourse(course);
+        schedule.setDayOfWeek(updatedSchedule.getDayOfWeek());
+        schedule.setStartTime(updatedSchedule.getStartTime());
+        schedule.setEndTime(updatedSchedule.getEndTime());
+        schedule.setRoomNumber(updatedSchedule.getRoomNumber());
+        schedule.setTerm(updatedSchedule.getTerm());
+        return scheduleRepository.save(schedule);
+    }
+
 }
