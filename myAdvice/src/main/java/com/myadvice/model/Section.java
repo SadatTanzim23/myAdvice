@@ -28,16 +28,23 @@ public class Section {
     @Column(name = "enrolled_count", nullable = false)
     private Integer enrolledCount;
 
+    @Column(name = "instructor_name", nullable = false)
+    private String instructorName;
+
+    @Column(name="day_of_week", nullable = false)
+    private String dayOfWeek;
     //Empty constructor
     public Section() {}
 
     //Full constructor
-    public Section(Course course, Faculty faculty, String sectionNumber, Integer capacity, Integer enrolledCount) {
+    public Section(Course course, Faculty faculty, String sectionNumber, Integer capacity, Integer enrolledCount, String instructorName, String dayOfWeek) {
         this.course = course;
         this.faculty = faculty;
         this.sectionNumber = sectionNumber;
         this.capacity = capacity;
         this.enrolledCount = enrolledCount;
+        this.instructorName = instructorName;
+        this.dayOfWeek = dayOfWeek;
     }
 
     //Getters and Setters
@@ -88,5 +95,21 @@ public class Section {
     public void setEnrolledCount(Integer enrolledCount) {
         this.enrolledCount = enrolledCount;
     }
+
+    public String getInstructorName() {
+        return instructorName;
+    }
+    public void setInstructorName(String instructorName) {
+        this.instructorName = instructorName;
+    }
+
+    public String getDayOfWeek() {
+        return dayOfWeek;
+    }
+    public void setDayOfWeek(String dayOfWeek) {
+        this.dayOfWeek = dayOfWeek;
+    }
+
+
 
 }

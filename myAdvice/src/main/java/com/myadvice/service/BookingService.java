@@ -69,15 +69,15 @@ public class BookingService {
     //Error if appointment not found or faculty already booked at new time
     public Appointment rescheduleAppointment(Long appointmentId, LocalDateTime newDateTime) {
         //Find existing appointment by ID (error if not found)
-       Appointment appointment = appointmentRepository.findById(appointmentId).orElseThrow(() -> new RuntimeException("Appointment not found"));
-       //Check if faculty is already booked at new requested time
-       if (appointmentRepository.existsByFacultyAndDateTime(appointment.getFaculty(), newDateTime)) {
-           throw new RuntimeException("Appointment already exists");
-       }
-       //Update appointment's date and time to new requested time
-       appointment.setDateTime(newDateTime);
-       //Save updated appointment to database and return it
-       return appointmentRepository.save(appointment);
+        Appointment appointment = appointmentRepository.findById(appointmentId).orElseThrow(() -> new RuntimeException("Appointment not found"));
+        //Check if faculty is already booked at new requested time
+        if (appointmentRepository.existsByFacultyAndDateTime(appointment.getFaculty(), newDateTime)) {
+            throw new RuntimeException("Appointment already exists");
+        }
+        //Update appointment's date and time to new requested time
+        appointment.setDateTime(newDateTime);
+        //Save updated appointment to database and return it
+        return appointmentRepository.save(appointment);
     }
 
 }

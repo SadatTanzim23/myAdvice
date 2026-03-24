@@ -14,6 +14,12 @@ public class Student {
     //Column named last_name, can't be empty
     @Column(name = "last_name", nullable = false)
     private String lastName;
+    // Column named faculty_name, can't be empty
+    @Column(name="faculty_name",nullable = false)
+    private String facultyName;
+    // Column named program_name, can't be empty
+    @Column(name="program_name",nullable = false)
+    private String programName;
     //Can't be empty, students can't have the same email
     @Column(nullable = false, unique = true)
     private String email;
@@ -48,7 +54,12 @@ public class Student {
     public String getEmail() {
         return email;
     }
-
+    public String getFacultyName() {
+        return facultyName;
+    }
+    public String getProgramName() {
+        return programName;
+    }
     //Setters
     public void setId(Long id) {
         this.id = id;
@@ -64,5 +75,11 @@ public class Student {
     }
     public void setEmail(String email) {
         this.email = email;
+    }
+    public void setFacultyName(String facultyName) {
+        this.facultyName = facultyName;
+    }
+    public void setProgramName(String programName) {
+        this.programName = programName;
     }
 }
