@@ -15,6 +15,12 @@ public class AdminService {
     private CourseRepository courseRepository;
 
     @Autowired
+    private StudentRepository studentRepository;
+
+    @Autowired
+    private FacultyRepository facultyRepository;
+
+    @Autowired
     private SectionRepository sectionRepository;
 
     @Autowired
@@ -169,4 +175,28 @@ public class AdminService {
     public List<Transcript> viewTranscript(Long studentId){
         return transcriptRepository.findByStudentId(studentId);
     }
+
+    public Student addStudent(String firstName, String lastName, String email, String password){
+        Student student = new Student(firstName, lastName, email, password);
+        studentRepository.save(student);
+        return student;
+    }
+
+    public void removeStudent(Long id){
+        Student student = studentRepository.findById(id).orElseThrow(() -> new RuntimeException("Student not found"));
+        studentRepository.delete(student);
+    }
+
+    public Student editStudent(Long id, Student updatedStudent){
+        Student student = studentRepository.findById(id).orElseThrow(() -> new RuntimeException("Student not found"));
+        student.setFirstName(updatedStudent.getFirstName());
+        student.setLastName(updatedStudent.getLastName());
+        student.setEmail(updatedStudent.getEmail());
+        student.setStudentNumber(updatedStudent.getStudentNumber());
+        student.setFacultyName(updatedStudent.getFacultyName());
+        student.setProgramName(updatedStudent.getProgramName());
+        student.setId(updatedStudent.getId());
+        return studentRepository.save(student);
+    }
+
 }
