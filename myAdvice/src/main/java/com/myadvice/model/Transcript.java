@@ -74,5 +74,4 @@ public class Transcript {
     public void setTerm(String term) {
         this.term = term;
     }
-
 }

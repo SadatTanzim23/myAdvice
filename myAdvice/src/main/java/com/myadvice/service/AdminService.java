@@ -162,5 +162,7 @@ public class AdminService {
         return transcriptRepository.save(transcript);
     }
 
-
+    public List<Transcript> viewTranscript(Long studentId){
+        return transcriptRepository.findByStudentId(studentId);
+    }
 }
