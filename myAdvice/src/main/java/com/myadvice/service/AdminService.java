@@ -142,6 +142,10 @@ public class AdminService {
         return scheduleRepository.save(schedule);
     }
 
+    public List<Schedule> viewScheduleByCourseId(Long courseCode){
+        return scheduleRepository.findByCourseCode(courseCode);
+    }
+
     public Transcript addTranscript(Student student, Course course, Double grade, String term){
         Transcript transcript = new Transcript(student, course, grade, term);
         transcriptRepository.save(transcript);
