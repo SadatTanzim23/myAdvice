@@ -199,4 +199,47 @@ public class AdminService {
         return studentRepository.save(student);
     }
 
+    public Faculty addFaculty(String firstName, String lastName, String email, String password){
+        Faculty faculty = new Faculty(firstName, lastName, email, password);
+        facultyRepository.save(faculty);
+        return faculty;
+    }
+
+    public void removeFaculty(Long id){
+        Faculty faculty = facultyRepository.findById(id).orElseThrow(() -> new RuntimeException("Faculty not found"));
+        facultyRepository.delete(faculty);
+    }
+
+    public Faculty editFaculty(Long id, Faculty updatedFaculty){
+        Faculty faculty = facultyRepository.findById(id).orElseThrow(() -> new RuntimeException("Faculty not found"));
+        faculty.setFirstName(updatedFaculty.getFirstName());
+        faculty.setLastName(updatedFaculty.getLastName());
+        faculty.setEmail(updatedFaculty.getEmail());
+        faculty.setDepartment(updatedFaculty.getDepartment());
+        faculty.setId(updatedFaculty.getId());
+        return facultyRepository.save(faculty);
+    }
+    public List<Faculty> viewFaculty(){
+        return facultyRepository.findAll();
+    }
+
+     public List<Student> viewStudents(){
+        return studentRepository.findAll();
+    }
+
+     public List<Course> viewCourses(){
+        return courseRepository.findAll();
+    }
+
+     public List<Section> viewSections(){
+        return sectionRepository.findAll();
+    }
+
+     public List<Schedule> viewSchedules(){
+        return scheduleRepository.findAll();
+    }
+
+     public List<Transcript> viewTranscripts(){
+        return transcriptRepository.findAll();
+    }
 }
