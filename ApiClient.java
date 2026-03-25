@@ -1,5 +1,6 @@
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import com.google.gson.JsonObject;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -12,6 +13,7 @@ public class ApiClient {
     private static final HttpClient client = HttpClient.newHttpClient();
     private static final Gson gson = new Gson();
 
+    // Admin API methods
     public static List<Course> getAllCourses() throws Exception {
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(BASE_URL + "/admin/courses"))
@@ -61,5 +63,19 @@ public class ApiClient {
             throw new Exception("Failed to delete course: " + response.body());
         }
     }
+
+    public static List<Course> getCoursePrerequisites(Long courseId) throws Exception {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(BASE_URL + "/admin/courses/prerequisites/" + courseId))
+                .GET()
+                .build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() != 200) {
+            throw new Exception("Failed to load prerequisites: " + response.body());
+        }
+        return gson.fromJson(response.body(), new TypeToken<List<Course>>(){}.getType());
+    }
+
 }
 
