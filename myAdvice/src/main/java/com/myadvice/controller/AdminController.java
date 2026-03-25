@@ -9,6 +9,7 @@ import java.util.List;
 
 @RestController //Marks it as a REST controller (handle incoming requests from UI)
 @RequestMapping("/admin") // Set base URL for all endpoints to start with
+@CrossOrigin(origins = "*") // Allows Swing frontend to call it
 public class AdminController {
 
     @Autowired
@@ -55,5 +56,11 @@ public class AdminController {
     @GetMapping("/courses/{courseId}/prerequisites")
     public List<Course> viewPrerequisites(@PathVariable("courseId") Long courseId){
         return adminService.viewPrerequisites(courseId);
+    }
+
+    // Endpoint to view all courses
+    @GetMapping("/courses")
+    public List<Course> getAllCourses(){
+        return adminService.getAllCourses();
     }
 }
