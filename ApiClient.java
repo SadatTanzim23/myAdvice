@@ -77,5 +77,30 @@ public class ApiClient {
         return gson.fromJson(response.body(), new TypeToken<List<Course>>(){}.getType());
     }
 
+    public static List<Course> addCoursePrerequisite(Long courseId, Long prerequisiteId) throws Exception {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(BASE_URL + "/admin/courses/" + courseId + "/prerequisites/add/" + prerequisiteId))
+                .POST(HttpRequest.BodyPublishers.noBody())
+                .build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() != 200) {
+            throw new Exception("Failed to add prerequisite: " + response.body());
+        }
+        return gson.fromJson(response.body(), new TypeToken<List<Course>>(){}.getType());
+
+    }
+
+    public static List<Course> removeCoursePrerequisite(Long courseId, Long prerequisiteId) throws Exception {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(BASE_URL + "/admin/courses/" + courseId + "/prerequisites/remove/" + prerequisiteId))
+                .DELETE()
+                .build();
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() != 200) {
+            throw new Exception("Failed to remove prerequisite: " + response.body());
+        }
+        return gson.fromJson(response.body(), new TypeToken<List<Course>>(){}.getType());
+    }
 }
 
