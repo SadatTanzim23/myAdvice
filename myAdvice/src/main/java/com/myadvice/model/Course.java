@@ -87,4 +87,7 @@ public class Course {
         this.prerequisites = prerequisites;
     }
 
+    public Long getId() {
+        return id;
+    }
 }
