@@ -41,6 +41,15 @@ public class MainApp extends JFrame {
 
     public void showModule(int idx) {
         headerSubLabel.setText(myAdvice.MODULE_META[idx][1] + "  |  " + myAdvice.MODULE_META[idx][2]);
+        // If navigating to Curriculum Advising, refresh that panel first
+        if (idx == 0) {
+            for (Component c : centerPanel.getComponents()) {
+                if (c instanceof ModuleScreen ms && ms.getModuleIdx() == 0) {
+                    ms.refreshCurriculumIfNeeded();
+                    break;
+                }
+            }
+        }
         centerLayout.show(centerPanel, myAdvice.MODULE_META[idx][0]);
         southLayout .show(southPanel,  "BACK");
     }
