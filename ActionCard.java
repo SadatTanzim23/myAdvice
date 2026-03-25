@@ -1,8 +1,11 @@
 import java.awt.*;
+import java.awt.event.*;
 import java.awt.geom.*;
 import javax.swing.*;
 import javax.swing.border.*;
+
 public class ActionCard extends JPanel {//Each module showing the action available inside
+    private Runnable onClickAction;
 
     public ActionCard(String title, String desc) {
         setLayout(new BorderLayout(0, 4));
@@ -17,13 +20,22 @@ public class ActionCard extends JPanel {//Each module showing the action availab
         d.setFont(new Font("Dialog", Font.PLAIN, 11));
         d.setForeground(myAdvice.TEXT_MUTED);
 
-        // JLabel badge = new JLabel("Coming soon");
-        // badge.setFont(new Font("Dialog", Font.BOLD, 10));
-        // badge.setForeground(myAdvice.ACCENT2);
-
         add(t, BorderLayout.NORTH);
         add(d, BorderLayout.CENTER);
-        //add(badge, BorderLayout.SOUTH);
+        
+        // Add click listener
+        addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if (onClickAction != null) {
+                    onClickAction.run();
+                }
+            }
+        });
+    }
+    
+    public void setOnClickAction(Runnable action) {
+        this.onClickAction = action;
     }
 
     @Override
