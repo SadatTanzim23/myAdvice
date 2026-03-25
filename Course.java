@@ -1,3 +1,5 @@
+import java.util.List;
+
 /**
  * Local Course class for Swing frontend
  * Mirrors the backend com.myadvice.model.Course class
@@ -8,6 +10,7 @@ public class Course {
     private String courseName;
     private Integer credits;
     private String description;
+    private List<Course> prerequisiteIds;
 
     public Course() {}
 
@@ -70,6 +73,14 @@ public class Course {
     @Override
     public String toString() {
         return courseCode + " - " + courseName;
+    }
+
+    public List<Course> getPrerequisiteIds() {
+        return prerequisiteIds;
+    }
+
+    public void setPrerequisiteIds(List<Course> prerequisiteIds) {
+        this.prerequisiteIds = prerequisiteIds;
     }
 }
 
