@@ -148,7 +148,7 @@ public class AdminService {
         return scheduleRepository.save(schedule);
     }
 
-    public List<Schedule> viewScheduleByCourseId(Long courseCode){
+    public List<Schedule> viewScheduleByCourseId(String courseCode){
         return scheduleRepository.findByCourseCode(courseCode);
     }
 
@@ -231,15 +231,15 @@ public class AdminService {
         return courseRepository.findAll();
     }
 
+     public List<Course> getAllCourses(){
+        return courseRepository.findAll();
+    }
+
      public List<Section> viewSections(){
         return sectionRepository.findAll();
     }
 
      public List<Schedule> viewSchedules(){
         return scheduleRepository.findAll();
-    }
-
-     public List<Transcript> viewTranscripts(){
-        return transcriptRepository.findAll();
     }
 }

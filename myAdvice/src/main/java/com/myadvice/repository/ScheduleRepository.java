@@ -7,5 +7,5 @@ import java.util.List;
 
 //Provides built in database methods
 public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
-    List<Schedule> findByCourseCode(Long courseCode);
+    List<Schedule> findByCourseCode(String courseCode);
 }
