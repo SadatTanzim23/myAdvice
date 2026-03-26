@@ -625,7 +625,7 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
             return;
         }
 
-        // Create prerequisite course labels for selection
+        // Create prerequisite course options for selection
         String[] prereqOptions = new String[candidates.size()];
         for (int i = 0; i < candidates.size(); i++) {
             Course c = candidates.get(i);
@@ -667,6 +667,71 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
                 String errorMsg = e.getMessage() != null ? e.getMessage() : e.toString();
                 SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
                         "Error adding prerequisite: " + errorMsg,
+                        "Error", JOptionPane.ERROR_MESSAGE));
+            }
+        }).start();
+    }
+
+
+    private void showRemovePrerequisiteDialog(Course selectedCourse, List<Course> currentPrereqs) {
+        // Check if there are prerequisites to remove
+        if (currentPrereqs == null || currentPrereqs.isEmpty()) {
+            JOptionPane.showMessageDialog(this,
+                    "This course has no prerequisites to remove.",
+                    "Info", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+
+        // Create options for prerequisite courses to select for removal
+        String[] options = new String[currentPrereqs.size()];
+        for (int i = 0; i < currentPrereqs.size(); i++) {
+            Course c = currentPrereqs.get(i);
+            options[i] = c.getCourseCode() + " - " + c.getCourseName();
+        }
+
+        // Show prerequisite selection dialog with options
+        int selectedIndex = JOptionPane.showOptionDialog(this,
+                "Select a prerequisite to remove:",
+                "Remove Prerequisite",
+                JOptionPane.DEFAULT_OPTION,
+                JOptionPane.PLAIN_MESSAGE,
+                null,
+                options,
+                options[0]);
+
+        if (selectedIndex < 0) return; // cancel
+        Course toRemove = currentPrereqs.get(selectedIndex);
+
+        // Confirm removal with user before proceeding
+        int confirm = JOptionPane.showConfirmDialog(this,
+                "Remove prerequisite " + toRemove.getCourseCode() + " from " + selectedCourse.getCourseCode() + "?",
+                "Confirm Remove",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.WARNING_MESSAGE);
+
+        if (confirm != JOptionPane.YES_OPTION) return;
+
+        // Remove the prerequisite using the API in a new thread to avoid blocking the UI
+        new Thread(() -> {
+            try {
+                // Use API to remove the prerequisite, and get the updated list of prerequisites
+                List<Course> updated = ApiClient.removeCoursePrerequisite(selectedCourse.getId(), toRemove.getId());
+                if (updated == null) updated = new java.util.ArrayList<>();
+                List<Course> finalUpdated = updated;
+
+                SwingUtilities.invokeLater(() -> {
+                    JOptionPane.showMessageDialog(this,
+                            "Prerequisite removed successfully.",
+                            "Success", JOptionPane.INFORMATION_MESSAGE);
+
+                    // Keep related data updated
+                    refreshCoursesAsync(moduleIdx == 0);
+                    showCoursePrerequisitesDialog(selectedCourse, finalUpdated);
+                });
+            } catch (Exception e) {
+                String errorMsg = e.getMessage() != null ? e.getMessage() : e.toString();
+                SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
+                        "Error removing prerequisite: " + errorMsg,
                         "Error", JOptionPane.ERROR_MESSAGE));
             }
         }).start();
