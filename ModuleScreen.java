@@ -6,6 +6,7 @@ import java.util.List;
 public class ModuleScreen extends JPanel {//the module screens you go in through the main screen 
     private final int moduleIdx;
     private List<Course> allCourses;
+    private List<Faculty> allFaculty;
 
     public ModuleScreen(int idx) {
         this.moduleIdx = idx;
@@ -493,6 +494,27 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
         }).start();
     }
 
+    // Helper method to fetch faculty list
+    private void fetchFacultyThen(Runnable onSuccess) {
+        new Thread(() -> {
+            try {
+                List<Faculty> faculty = ApiClient.getAllFaculty();
+                if (faculty == null) {
+                    faculty = new java.util.ArrayList<>();
+                }
+                allFaculty = faculty;
+                if (onSuccess != null) {
+                    SwingUtilities.invokeLater(onSuccess);
+                }
+            } catch (Exception e) {
+                String errorMsg = e.getMessage() != null ? e.getMessage() : e.toString();
+                SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
+                        "Error: " + errorMsg,
+                        "Error", JOptionPane.ERROR_MESSAGE));
+            }
+        }).start();
+    }
+
     // Refresh courses and update UI
     private void refreshCoursesAsync(boolean refreshCurriculumUI) {
         fetchCoursesThen(() -> {
@@ -783,9 +805,9 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
         // Get user selection and handle accordingly
         switch (choice) {
             case 0 -> showListSectionsDialog();
-            case 1 -> fetchCoursesThen(this::showAddSectionDialog);
-            case 2 -> fetchCoursesThen(this::showEditSectionDialog);
-            case 3 -> JOptionPane.showMessageDialog(this, "Delete Section");
+            case 1 -> fetchCoursesThen(() -> fetchFacultyThen(this::showAddSectionDialog));
+            case 2 -> fetchCoursesThen(() -> fetchFacultyThen(this::showEditSectionDialog));
+            case 3 -> showDeleteSectionDialog();
             default -> { }
         }
     }
@@ -852,13 +874,19 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
                     "Info", JOptionPane.INFORMATION_MESSAGE);
             return;
         }
+        if (allFaculty == null || allFaculty.isEmpty()) {
+            JOptionPane.showMessageDialog(this,
+                    "No faculty available. Add faculty first.",
+                    "Info", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
         // Build a panel for Section addition with information
         JPanel panel = new JPanel(new GridBagLayout());
         panel.setBorder(new EmptyBorder(16, 16, 16, 16));
 
         // Course selection dropdown and input fields for section details
         JComboBox<Course> courseCombo = new JComboBox<>(allCourses.toArray(new Course[0]));
-        JTextField facultyIdField = new JTextField();
+        JComboBox<Faculty> facultyCombo = new JComboBox<>(allFaculty.toArray(new Faculty[0]));
         JTextField sectionNumberField = new JTextField();
         JTextField capacityField = new JTextField();
         JTextField enrolledField = new JTextField("0");
@@ -867,7 +895,7 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
 
         Dimension inputSize = new Dimension(220, 26);
         courseCombo.setPreferredSize(inputSize);
-        facultyIdField.setPreferredSize(inputSize);
+        facultyCombo.setPreferredSize(inputSize);
         sectionNumberField.setPreferredSize(inputSize);
         capacityField.setPreferredSize(inputSize);
         enrolledField.setPreferredSize(inputSize);
@@ -882,8 +910,8 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
         gbc.gridx = 0; gbc.gridy = 0; panel.add(new JLabel("Course:"), gbc);
         gbc.gridx = 1; panel.add(courseCombo, gbc);
 
-        gbc.gridx = 0; gbc.gridy = 1; panel.add(new JLabel("Faculty ID:"), gbc);
-        gbc.gridx = 1; panel.add(facultyIdField, gbc);
+        gbc.gridx = 0; gbc.gridy = 1; panel.add(new JLabel("Faculty:"), gbc);
+        gbc.gridx = 1; panel.add(facultyCombo, gbc);
 
         gbc.gridx = 0; gbc.gridy = 2; panel.add(new JLabel("Section Number:"), gbc);
         gbc.gridx = 1; panel.add(sectionNumberField, gbc);
@@ -908,14 +936,14 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
 
         // Get selected course and section details from the form fields
         Course selectedCourse = (Course) courseCombo.getSelectedItem();
-        String facultyIdStr = facultyIdField.getText().trim();
+        Faculty selectedFaculty = (Faculty) facultyCombo.getSelectedItem();
         String sectionNumber = sectionNumberField.getText().trim();
         String capacityStr = capacityField.getText().trim();
         String enrolledStr = enrolledField.getText().trim();
         String instructorName = instructorField.getText().trim();
         String dayOfWeek = String.valueOf(dayCombo.getSelectedItem());
 
-        if (selectedCourse == null || facultyIdStr.isEmpty() || sectionNumber.isEmpty()
+        if (selectedCourse == null || selectedFaculty == null || sectionNumber.isEmpty()
                 || capacityStr.isEmpty() || enrolledStr.isEmpty()
                 || instructorName.isEmpty() || dayOfWeek.isEmpty()) {
             JOptionPane.showMessageDialog(this,
@@ -925,16 +953,8 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
         }
         try {
             // Fetch capacity and enrolled count variables and validate
-            Long facultyId = Long.parseLong(facultyIdStr);
             Integer capacity = Integer.parseInt(capacityStr);
             Integer enrolled = Integer.parseInt(enrolledStr);
-
-            if (facultyId <= 0) {
-                JOptionPane.showMessageDialog(this,
-                        "Faculty ID must be a positive number.",
-                        "Validation Error", JOptionPane.ERROR_MESSAGE);
-                return;
-            }
 
             if (capacity <= 0 || enrolled < 0 || enrolled > capacity) {
                 JOptionPane.showMessageDialog(this,
@@ -944,12 +964,9 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
             }
 
             // Create and save the new section with all fields using the API
-            Faculty facultyRef = new Faculty();
-            facultyRef.setId(facultyId);
-
             Section newSection = new Section();
             newSection.setCourse(selectedCourse);
-            newSection.setFaculty(facultyRef);
+            newSection.setFaculty(selectedFaculty);
             newSection.setSectionNumber(sectionNumber);
             newSection.setCapacity(capacity);
             newSection.setEnrolledCount(enrolled);
@@ -972,7 +989,7 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
 
         } catch (NumberFormatException ex) {
             JOptionPane.showMessageDialog(this,
-                    "Faculty ID, Capacity, and Enrolled Count must be numbers.",
+                    "Capacity and Enrolled Count must be numbers.",
                     "Validation Error", JOptionPane.ERROR_MESSAGE);
         }
     }
@@ -1028,14 +1045,20 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
     }
 
     private void showEditSectionForm(Section selectedSection) {
+        if (allFaculty == null || allFaculty.isEmpty()) {
+            JOptionPane.showMessageDialog(this,
+                    "No faculty available. Add faculty first.",
+                    "Info", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+
         // Create a panel for editing section details
         JPanel panel = new JPanel(new GridBagLayout());
         panel.setBorder(new EmptyBorder(16, 16, 16, 16));
 
         // Course selection dropdown and input fields for section details
         JComboBox<Course> courseCombo = new JComboBox<>(allCourses.toArray(new Course[0]));
-        JTextField facultyIdField = new JTextField(selectedSection.getFaculty() != null && selectedSection.getFaculty().getId() != null
-                ? String.valueOf(selectedSection.getFaculty().getId()) : "");
+        JComboBox<Faculty> facultyCombo = new JComboBox<>(allFaculty.toArray(new Faculty[0]));
         JTextField sectionNumberField = new JTextField(selectedSection.getSectionNumber() != null ? selectedSection.getSectionNumber() : "");
         JTextField capacityField = new JTextField(selectedSection.getCapacity() != null ? String.valueOf(selectedSection.getCapacity()) : "");
         JTextField enrolledField = new JTextField(selectedSection.getEnrolledCount() != null ? String.valueOf(selectedSection.getEnrolledCount()) : "0");
@@ -1059,12 +1082,22 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
         // Set input field dimensions
         Dimension inputSize = new Dimension(220, 26);
         courseCombo.setPreferredSize(inputSize);
-        facultyIdField.setPreferredSize(inputSize);
+        facultyCombo.setPreferredSize(inputSize);
         sectionNumberField.setPreferredSize(inputSize);
         capacityField.setPreferredSize(inputSize);
         enrolledField.setPreferredSize(inputSize);
         instructorField.setPreferredSize(inputSize);
         dayCombo.setPreferredSize(inputSize);
+
+        if (selectedSection.getFaculty() != null && selectedSection.getFaculty().getId() != null) {
+            for (int i = 0; i < facultyCombo.getItemCount(); i++) {
+                Faculty f = facultyCombo.getItemAt(i);
+                if (f != null && f.getId() != null && f.getId().equals(selectedSection.getFaculty().getId())) {
+                    facultyCombo.setSelectedIndex(i);
+                    break;
+                }
+            }
+        }
 
         // Layout all fields in the panel using GridBagLayout
         GridBagConstraints gbc = new GridBagConstraints();
@@ -1074,8 +1107,8 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
 
         gbc.gridx = 0; gbc.gridy = 0; panel.add(new JLabel("Course:"), gbc);
         gbc.gridx = 1; panel.add(courseCombo, gbc);
-        gbc.gridx = 0; gbc.gridy = 1; panel.add(new JLabel("Faculty ID:"), gbc);
-        gbc.gridx = 1; panel.add(facultyIdField, gbc);
+        gbc.gridx = 0; gbc.gridy = 1; panel.add(new JLabel("Faculty:"), gbc);
+        gbc.gridx = 1; panel.add(facultyCombo, gbc);
         gbc.gridx = 0; gbc.gridy = 2; panel.add(new JLabel("Section Number:"), gbc);
         gbc.gridx = 1; panel.add(sectionNumberField, gbc);
         gbc.gridx = 0; gbc.gridy = 3; panel.add(new JLabel("Capacity:"), gbc);
@@ -1094,7 +1127,7 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
 
         // Get selected course and section details from the form fields
         Course selectedCourse = (Course) courseCombo.getSelectedItem();
-        String facultyIdStr = facultyIdField.getText().trim();
+        Faculty selectedFaculty = (Faculty) facultyCombo.getSelectedItem();
         String sectionNumber = sectionNumberField.getText().trim();
         String capacityStr = capacityField.getText().trim();
         String enrolledStr = enrolledField.getText().trim();
@@ -1102,7 +1135,7 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
         String dayOfWeek = String.valueOf(dayCombo.getSelectedItem());
 
         // Handle validation/empty errors
-        if (selectedCourse == null || facultyIdStr.isEmpty() || sectionNumber.isEmpty()
+        if (selectedCourse == null || selectedFaculty == null || sectionNumber.isEmpty()
                 || capacityStr.isEmpty() || enrolledStr.isEmpty() || instructorName.isEmpty()) {
             JOptionPane.showMessageDialog(this,
                     "Please fill in all fields.",
@@ -1111,16 +1144,8 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
         }
 
         try {
-            Long facultyId = Long.parseLong(facultyIdStr);
             Integer capacity = Integer.parseInt(capacityStr);
             Integer enrolled = Integer.parseInt(enrolledStr);
-
-            if (facultyId <= 0) {
-                JOptionPane.showMessageDialog(this,
-                        "Faculty ID must be a positive number.",
-                        "Validation Error", JOptionPane.ERROR_MESSAGE);
-                return;
-            }
             if (capacity <= 0 || enrolled < 0 || enrolled > capacity) {
                 JOptionPane.showMessageDialog(this,
                         "Ensure capacity > 0 and 0 <= enrolled count <= capacity.",
@@ -1128,13 +1153,10 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
                 return;
             }
 
-            Faculty facultyRef = new Faculty();
-            facultyRef.setId(facultyId);
-
             // Store updated section and use the API to update it
             Section updated = new Section();
             updated.setCourse(selectedCourse);
-            updated.setFaculty(facultyRef);
+            updated.setFaculty(selectedFaculty);
             updated.setSectionNumber(sectionNumber);
             updated.setCapacity(capacity);
             updated.setEnrolledCount(enrolled);
@@ -1157,9 +1179,81 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
 
         } catch (NumberFormatException ex) {
             JOptionPane.showMessageDialog(this,
-                    "Faculty ID, Capacity, and Enrolled Count must be numbers.",
+                    "Capacity and Enrolled Count must be numbers.",
                     "Validation Error", JOptionPane.ERROR_MESSAGE);
         }
+    }
+
+    // Delete section dialog
+    private void showDeleteSectionDialog() {
+        new Thread(() -> {
+            try {
+                List<Section> sections = ApiClient.getAllSections();
+                if (sections == null || sections.isEmpty()) {
+                    SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
+                            "No sections available to delete.",
+                            "Info", JOptionPane.INFORMATION_MESSAGE));
+                    return;
+                }
+
+                List<Section> finalSections = sections;
+                SwingUtilities.invokeLater(() -> showDeleteSectionChooser(finalSections));
+            } catch (Exception e) {
+                String errorMsg = e.getMessage() != null ? e.getMessage() : e.toString();
+                SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
+                        "Error loading sections: " + errorMsg,
+                        "Error", JOptionPane.ERROR_MESSAGE));
+            }
+        }).start();
+    }
+
+    private void showDeleteSectionChooser(List<Section> sections) {
+        String[] sectionOptions = new String[sections.size()];
+        for (int i = 0; i < sections.size(); i++) {
+            Section s = sections.get(i);
+            String courseCode = (s.getCourse() != null && s.getCourse().getCourseCode() != null)
+                    ? s.getCourse().getCourseCode() : "N/A";
+            String secNo = s.getSectionNumber() != null ? s.getSectionNumber() : "N/A";
+            sectionOptions[i] = courseCode + " - Sec " + secNo;
+        }
+
+        int selectedIndex = JOptionPane.showOptionDialog(this,
+                "Select a section to delete:",
+                "Delete Section",
+                JOptionPane.DEFAULT_OPTION,
+                JOptionPane.WARNING_MESSAGE,
+                null,
+                sectionOptions,
+                sectionOptions[0]);
+
+        if (selectedIndex < 0) return;
+        Section selectedSection = sections.get(selectedIndex);
+
+        String courseCode = (selectedSection.getCourse() != null && selectedSection.getCourse().getCourseCode() != null)
+                ? selectedSection.getCourse().getCourseCode() : "N/A";
+        String secNo = selectedSection.getSectionNumber() != null ? selectedSection.getSectionNumber() : "N/A";
+
+        int confirm = JOptionPane.showConfirmDialog(this,
+                "Are you sure you want to delete section " + courseCode + " - Sec " + secNo + "?",
+                "Confirm Delete",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.WARNING_MESSAGE);
+
+        if (confirm != JOptionPane.YES_OPTION) return;
+
+        new Thread(() -> {
+            try {
+                ApiClient.deleteSection(selectedSection.getId());
+                SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
+                        "Section deleted successfully.",
+                        "Success", JOptionPane.INFORMATION_MESSAGE));
+            } catch (Exception e) {
+                String errorMsg = e.getMessage() != null ? e.getMessage() : e.toString();
+                SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
+                        "Error deleting section: " + errorMsg,
+                        "Error", JOptionPane.ERROR_MESSAGE));
+            }
+        }).start();
     }
 
 
