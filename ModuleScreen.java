@@ -510,5 +510,24 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
                     "Info", JOptionPane.INFORMATION_MESSAGE);
             return;
         }
+
+
+        // Build course labels for selection
+        String[] courseOptions = new String[allCourses.size()];
+        for (int i = 0; i < allCourses.size(); i++) {
+            Course c = allCourses.get(i);
+            courseOptions[i] = c.getCourseCode() + " - " + c.getCourseName();
+        }
+
+        int selectedIndex = JOptionPane.showOptionDialog(this,
+                "Select a course to view its prerequisites:",
+                "Manage Prerequisites",
+                JOptionPane.DEFAULT_OPTION,
+                JOptionPane.PLAIN_MESSAGE,
+                null,
+                courseOptions,
+                courseOptions[0]);
+
+        if (selectedIndex < 0) return; // Cancel
     }
 }
