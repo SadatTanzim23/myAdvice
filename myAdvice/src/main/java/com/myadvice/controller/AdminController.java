@@ -3,6 +3,7 @@ package com.myadvice.controller;
 import com.myadvice.model.Course;
 import com.myadvice.model.Faculty;
 import com.myadvice.model.Section;
+import com.myadvice.model.Student;
 import com.myadvice.service.AdminService;
 import org.springframework.http.HttpStatus;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -78,6 +79,56 @@ public class AdminController {
     public Faculty addFaculty(@RequestBody Faculty faculty){
         try {
             return adminService.addFaculty(faculty);
+        } catch (RuntimeException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage(), e);
+        }
+    }
+
+    @PutMapping("/faculty/edit/{id}")
+    public Faculty editFaculty(@PathVariable("id") Long id, @RequestBody Faculty faculty){
+        try {
+            return adminService.editFaculty(id, faculty);
+        } catch (RuntimeException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage(), e);
+        }
+    }
+
+    @DeleteMapping("/faculty/delete/{id}")
+    public void deleteFaculty(@PathVariable("id") Long id){
+        try {
+            adminService.removeFaculty(id);
+        } catch (RuntimeException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage(), e);
+        }
+    }
+
+    @GetMapping("/students")
+    public List<Student> viewStudents(){
+        return adminService.viewStudents();
+    }
+
+    @PostMapping("/students/add")
+    public Student addStudent(@RequestBody Student student){
+        try {
+            return adminService.addStudent(student);
+        } catch (RuntimeException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage(), e);
+        }
+    }
+
+    @PutMapping("/students/edit/{id}")
+    public Student editStudent(@PathVariable("id") Long id, @RequestBody Student student){
+        try {
+            return adminService.editStudent(id, student);
+        } catch (RuntimeException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage(), e);
+        }
+    }
+
+    @DeleteMapping("/students/delete/{id}")
+    public void deleteStudent(@PathVariable("id") Long id){
+        try {
+            adminService.removeStudent(id);
         } catch (RuntimeException e) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage(), e);
         }
