@@ -784,7 +784,7 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
         switch (choice) {
             case 0 -> showListSectionsDialog();
             case 1 -> fetchCoursesThen(this::showAddSectionDialog);
-            case 2 -> JOptionPane.showMessageDialog(this, "Edit Section");
+            case 2 -> fetchCoursesThen(this::showEditSectionDialog);
             case 3 -> JOptionPane.showMessageDialog(this, "Delete Section");
             default -> { }
         }
@@ -966,6 +966,191 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
                     String errorMsg = e.getMessage() != null ? e.getMessage() : e.toString();
                     SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
                             "Error adding section: " + errorMsg,
+                            "Error", JOptionPane.ERROR_MESSAGE));
+                }
+            }).start();
+
+        } catch (NumberFormatException ex) {
+            JOptionPane.showMessageDialog(this,
+                    "Faculty ID, Capacity, and Enrolled Count must be numbers.",
+                    "Validation Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    // Edit section dialog
+    private void showEditSectionDialog() {
+        new Thread(() -> {
+            // Fetch all sections from the API
+            try {
+                List<Section> sections = ApiClient.getAllSections();
+                if (sections == null || sections.isEmpty()) {
+                    SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
+                            "No sections available to edit.",
+                            "Info", JOptionPane.INFORMATION_MESSAGE));
+                    return;
+                }
+                // Show section chooser containing all sections
+                List<Section> finalSections = sections;
+                SwingUtilities.invokeLater(() -> showEditSectionChooser(finalSections));
+            } catch (Exception e) {
+                String errorMsg = e.getMessage() != null ? e.getMessage() : e.toString();
+                SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
+                        "Error loading sections: " + errorMsg,
+                        "Error", JOptionPane.ERROR_MESSAGE));
+            }
+        }).start();
+    }
+
+    private void showEditSectionChooser(List<Section> sections) {
+        // Get current section options
+        String[] sectionOptions = new String[sections.size()];
+        for (int i = 0; i < sections.size(); i++) {
+            Section s = sections.get(i);
+            String courseCode = (s.getCourse() != null && s.getCourse().getCourseCode() != null)
+                    ? s.getCourse().getCourseCode() : "N/A";
+            String secNo = s.getSectionNumber() != null ? s.getSectionNumber() : "N/A";
+            sectionOptions[i] = courseCode + " - Sec " + secNo;
+        }
+
+        // Store selected section for editing
+        int selectedIndex = JOptionPane.showOptionDialog(this,
+                "Select a section to edit:",
+                "Edit Section",
+                JOptionPane.DEFAULT_OPTION,
+                JOptionPane.PLAIN_MESSAGE,
+                null,
+                sectionOptions,
+                sectionOptions[0]);
+
+        if (selectedIndex < 0) return;
+        Section selectedSection = sections.get(selectedIndex);
+        showEditSectionForm(selectedSection);
+    }
+
+    private void showEditSectionForm(Section selectedSection) {
+        // Create a panel for editing section details
+        JPanel panel = new JPanel(new GridBagLayout());
+        panel.setBorder(new EmptyBorder(16, 16, 16, 16));
+
+        // Course selection dropdown and input fields for section details
+        JComboBox<Course> courseCombo = new JComboBox<>(allCourses.toArray(new Course[0]));
+        JTextField facultyIdField = new JTextField(selectedSection.getFaculty() != null && selectedSection.getFaculty().getId() != null
+                ? String.valueOf(selectedSection.getFaculty().getId()) : "");
+        JTextField sectionNumberField = new JTextField(selectedSection.getSectionNumber() != null ? selectedSection.getSectionNumber() : "");
+        JTextField capacityField = new JTextField(selectedSection.getCapacity() != null ? String.valueOf(selectedSection.getCapacity()) : "");
+        JTextField enrolledField = new JTextField(selectedSection.getEnrolledCount() != null ? String.valueOf(selectedSection.getEnrolledCount()) : "0");
+        JTextField instructorField = new JTextField(selectedSection.getInstructorName() != null ? selectedSection.getInstructorName() : "");
+        JComboBox<String> dayCombo = new JComboBox<>(new String[]{"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"});
+
+        // Get current course selected in the combobox
+        if (selectedSection.getCourse() != null && selectedSection.getCourse().getId() != null) {
+            for (int i = 0; i < courseCombo.getItemCount(); i++) {
+                Course c = courseCombo.getItemAt(i);
+                if (c != null && c.getId() != null && c.getId().equals(selectedSection.getCourse().getId())) {
+                    courseCombo.setSelectedIndex(i);
+                    break;
+                }
+            }
+        }
+        if (selectedSection.getDayOfWeek() != null) {
+            dayCombo.setSelectedItem(selectedSection.getDayOfWeek());
+        }
+
+        // Set input field dimensions
+        Dimension inputSize = new Dimension(220, 26);
+        courseCombo.setPreferredSize(inputSize);
+        facultyIdField.setPreferredSize(inputSize);
+        sectionNumberField.setPreferredSize(inputSize);
+        capacityField.setPreferredSize(inputSize);
+        enrolledField.setPreferredSize(inputSize);
+        instructorField.setPreferredSize(inputSize);
+        dayCombo.setPreferredSize(inputSize);
+
+        // Layout all fields in the panel using GridBagLayout
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(6, 6, 6, 6);
+        gbc.anchor = GridBagConstraints.WEST;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+
+        gbc.gridx = 0; gbc.gridy = 0; panel.add(new JLabel("Course:"), gbc);
+        gbc.gridx = 1; panel.add(courseCombo, gbc);
+        gbc.gridx = 0; gbc.gridy = 1; panel.add(new JLabel("Faculty ID:"), gbc);
+        gbc.gridx = 1; panel.add(facultyIdField, gbc);
+        gbc.gridx = 0; gbc.gridy = 2; panel.add(new JLabel("Section Number:"), gbc);
+        gbc.gridx = 1; panel.add(sectionNumberField, gbc);
+        gbc.gridx = 0; gbc.gridy = 3; panel.add(new JLabel("Capacity:"), gbc);
+        gbc.gridx = 1; panel.add(capacityField, gbc);
+        gbc.gridx = 0; gbc.gridy = 4; panel.add(new JLabel("Enrolled Count:"), gbc);
+        gbc.gridx = 1; panel.add(enrolledField, gbc);
+        gbc.gridx = 0; gbc.gridy = 5; panel.add(new JLabel("Instructor Name:"), gbc);
+        gbc.gridx = 1; panel.add(instructorField, gbc);
+        gbc.gridx = 0; gbc.gridy = 6; panel.add(new JLabel("Day of Week:"), gbc);
+        gbc.gridx = 1; panel.add(dayCombo, gbc);
+
+        // Confirmation button for editing the section
+        int result = JOptionPane.showConfirmDialog(this, panel, "Confirm Edit",
+                JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+        if (result != JOptionPane.OK_OPTION) return;
+
+        // Get selected course and section details from the form fields
+        Course selectedCourse = (Course) courseCombo.getSelectedItem();
+        String facultyIdStr = facultyIdField.getText().trim();
+        String sectionNumber = sectionNumberField.getText().trim();
+        String capacityStr = capacityField.getText().trim();
+        String enrolledStr = enrolledField.getText().trim();
+        String instructorName = instructorField.getText().trim();
+        String dayOfWeek = String.valueOf(dayCombo.getSelectedItem());
+
+        // Handle validation/empty errors
+        if (selectedCourse == null || facultyIdStr.isEmpty() || sectionNumber.isEmpty()
+                || capacityStr.isEmpty() || enrolledStr.isEmpty() || instructorName.isEmpty()) {
+            JOptionPane.showMessageDialog(this,
+                    "Please fill in all fields.",
+                    "Validation Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        try {
+            Long facultyId = Long.parseLong(facultyIdStr);
+            Integer capacity = Integer.parseInt(capacityStr);
+            Integer enrolled = Integer.parseInt(enrolledStr);
+
+            if (facultyId <= 0) {
+                JOptionPane.showMessageDialog(this,
+                        "Faculty ID must be a positive number.",
+                        "Validation Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            if (capacity <= 0 || enrolled < 0 || enrolled > capacity) {
+                JOptionPane.showMessageDialog(this,
+                        "Ensure capacity > 0 and 0 <= enrolled count <= capacity.",
+                        "Validation Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            Faculty facultyRef = new Faculty();
+            facultyRef.setId(facultyId);
+
+            // Store updated section and use the API to update it
+            Section updated = new Section();
+            updated.setCourse(selectedCourse);
+            updated.setFaculty(facultyRef);
+            updated.setSectionNumber(sectionNumber);
+            updated.setCapacity(capacity);
+            updated.setEnrolledCount(enrolled);
+            updated.setInstructorName(instructorName);
+            updated.setDayOfWeek(dayOfWeek);
+
+            new Thread(() -> {
+                try {
+                    ApiClient.editSection(selectedSection.getId(), updated);
+                    SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
+                            "Section updated successfully.",
+                            "Success", JOptionPane.INFORMATION_MESSAGE));
+                } catch (Exception e) {
+                    String errorMsg = e.getMessage() != null ? e.getMessage() : e.toString();
+                    SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
+                            "Error editing section: " + errorMsg,
                             "Error", JOptionPane.ERROR_MESSAGE));
                 }
             }).start();
