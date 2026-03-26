@@ -1,6 +1,7 @@
 package com.myadvice.controller;
 
 import com.myadvice.model.Course;
+import com.myadvice.model.Section;
 import com.myadvice.service.AdminService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -63,4 +64,26 @@ public class AdminController {
     public List<Course> getAllCourses(){
         return adminService.getAllCourses();
     }
+
+    // Section management endpoints
+    @GetMapping("/sections")
+    public List<Section> viewSections(){
+        return adminService.viewSections();
+    }
+
+    @PostMapping("/sections/add")
+    public Section addSection(@RequestBody Section section){
+        return adminService.addSection(section.getCourse(), section.getFaculty(), section.getSectionNumber(), section.getCapacity(), section.getEnrolledCount(), section.getInstructorName(), section.getDayOfWeek());
+    }
+
+    @PutMapping("/sections/edit/id")
+    public Section editSection(@RequestBody Section section){
+        return adminService.editSection(section.getId(), section);
+    }
+
+    @DeleteMapping("/sections/delete/id")
+    public Section deleteSection(@PathVariable("id") Long id){
+        return adminService.removeSection(id);
+    }
+
 }
