@@ -174,7 +174,7 @@ public class AdminService {
     }
 
     public List<Schedule> viewScheduleByCourseId(String courseCode){
-        return scheduleRepository.findByCourseCode(courseCode);
+        return scheduleRepository.findByCourseCourseCode(courseCode);
     }
 
     public Transcript addTranscript(Student student, Course course, Double grade, String term){
@@ -207,6 +207,21 @@ public class AdminService {
         return student;
     }
 
+    public Student addStudent(Student student){
+        if (student == null) {
+            throw new RuntimeException("Student is required");
+        }
+        if (student.getFirstName() == null || student.getFirstName().isBlank()
+                || student.getLastName() == null || student.getLastName().isBlank()
+                || student.getEmail() == null || student.getEmail().isBlank()
+                || student.getStudentNumber() == null || student.getStudentNumber().isBlank()
+                || student.getFacultyName() == null || student.getFacultyName().isBlank()
+                || student.getProgramName() == null || student.getProgramName().isBlank()) {
+            throw new RuntimeException("Student first name, last name, email, student number, faculty, and program are required");
+        }
+        return studentRepository.save(student);
+    }
+
     public void removeStudent(Long id){
         Student student = studentRepository.findById(id).orElseThrow(() -> new RuntimeException("Student not found"));
         studentRepository.delete(student);
@@ -220,7 +235,6 @@ public class AdminService {
         student.setStudentNumber(updatedStudent.getStudentNumber());
         student.setFacultyName(updatedStudent.getFacultyName());
         student.setProgramName(updatedStudent.getProgramName());
-        student.setId(updatedStudent.getId());
         return studentRepository.save(student);
     }
 
@@ -248,7 +262,6 @@ public class AdminService {
         faculty.setLastName(updatedFaculty.getLastName());
         faculty.setEmail(updatedFaculty.getEmail());
         faculty.setDepartment(updatedFaculty.getDepartment());
-        faculty.setId(updatedFaculty.getId());
         return facultyRepository.save(faculty);
     }
     public List<Faculty> viewFaculty(){
