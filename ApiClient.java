@@ -149,6 +149,82 @@ public class ApiClient {
         return gson.fromJson(response.body(), Faculty.class);
     }
 
+    public static Faculty editFaculty(Long facultyId, Faculty faculty) throws Exception {
+        String json = gson.toJson(faculty);
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(BASE_URL + "/admin/faculty/edit/" + facultyId))
+                .header("Content-Type", "application/json")
+                .method("PUT", HttpRequest.BodyPublishers.ofString(json))
+                .build();
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() != 200) {
+            throw new Exception("Failed to edit faculty: " + response.body());
+        }
+        return gson.fromJson(response.body(), Faculty.class);
+    }
+
+    public static void deleteFaculty(Long facultyId) throws Exception {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(BASE_URL + "/admin/faculty/delete/" + facultyId))
+                .DELETE()
+                .build();
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() != 200) {
+            throw new Exception("Failed to delete faculty: " + response.body());
+        }
+    }
+
+    public static List<Student> getAllStudents() throws Exception {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(BASE_URL + "/admin/students"))
+                .GET()
+                .build();
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() != 200) {
+            throw new Exception("Failed to load students: " + response.body());
+        }
+        return gson.fromJson(response.body(), new TypeToken<List<Student>>(){}.getType());
+    }
+
+    public static Student addStudent(Student student) throws Exception {
+        String json = gson.toJson(student);
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(BASE_URL + "/admin/students/add"))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(json))
+                .build();
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() != 200 && response.statusCode() != 201) {
+            throw new Exception("Failed to add student: " + response.body());
+        }
+        return gson.fromJson(response.body(), Student.class);
+    }
+
+    public static Student editStudent(Long studentId, Student student) throws Exception {
+        String json = gson.toJson(student);
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(BASE_URL + "/admin/students/edit/" + studentId))
+                .header("Content-Type", "application/json")
+                .method("PUT", HttpRequest.BodyPublishers.ofString(json))
+                .build();
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() != 200) {
+            throw new Exception("Failed to edit student: " + response.body());
+        }
+        return gson.fromJson(response.body(), Student.class);
+    }
+
+    public static void deleteStudent(Long studentId) throws Exception {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(BASE_URL + "/admin/students/delete/" + studentId))
+                .DELETE()
+                .build();
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() != 200) {
+            throw new Exception("Failed to delete student: " + response.body());
+        }
+    }
+
     // Section API methods
     public static List<Section> getAllSections() throws Exception {
         HttpRequest request = HttpRequest.newBuilder()
