@@ -1,6 +1,5 @@
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-import com.myadvice.model.Section;
 
 import java.net.URI;
 import java.net.http.HttpClient;
