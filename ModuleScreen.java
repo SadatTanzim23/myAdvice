@@ -599,4 +599,76 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
         JOptionPane.showMessageDialog(this, scrollPane,
                 "Prerequisite Details", JOptionPane.INFORMATION_MESSAGE);
     }
+
+    private void showAddPrerequisiteDialog(Course selectedCourse, List<Course> currentPrereqs) {
+        java.util.Set<Long> currentIds = new java.util.HashSet<>();
+
+        // Get all course IDs in the current prerequisites list
+        for (Course c : currentPrereqs) {
+            if (c.getId() != null) currentIds.add(c.getId());
+        }
+
+
+        // Only add eligible courses to be a prerequisite
+        java.util.List<Course> candidates = new java.util.ArrayList<>();
+        for (Course c : allCourses) {
+            if (c.getId() == null) continue;
+            if (c.getId().equals(selectedCourse.getId())) continue; // cannot add itself
+            if (currentIds.contains(c.getId())) continue;            // already a prereq
+            candidates.add(c);
+        }
+        // No eligible courses to add as a prerequisite
+        if (candidates.isEmpty()) {
+            JOptionPane.showMessageDialog(this,
+                    "No available courses to add as prerequisites.",
+                    "Info", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+
+        // Create prerequisite course labels for selection
+        String[] prereqOptions = new String[candidates.size()];
+        for (int i = 0; i < candidates.size(); i++) {
+            Course c = candidates.get(i);
+            prereqOptions[i] = c.getCourseCode() + " - " + c.getCourseName();
+        }
+
+        // Store selected course for later use
+        int selectedIndex = JOptionPane.showOptionDialog(this,
+                "Select a course to add as prerequisite:",
+                "Add Prerequisite",
+                JOptionPane.DEFAULT_OPTION,
+                JOptionPane.PLAIN_MESSAGE,
+                null,
+                prereqOptions,
+                prereqOptions[0]);
+
+        if (selectedIndex < 0) return; // cancel
+
+        Course toAdd = candidates.get(selectedIndex); // Selected prerequisite course
+
+        new Thread(() -> {
+            try {
+                // Add the prerequisite using the API
+                List<Course> updated = ApiClient.addCoursePrerequisite(selectedCourse.getId(), toAdd.getId());
+                if (updated == null) updated = new java.util.ArrayList<>();
+                List<Course> finalUpdated = updated;
+
+                // Show success message and refresh the prerequisite dialog with updated data
+                SwingUtilities.invokeLater(() -> {
+                    JOptionPane.showMessageDialog(this,
+                            "Prerequisite added successfully.",
+                            "Success", JOptionPane.INFORMATION_MESSAGE);
+
+                    // keep local data updated
+                    refreshCoursesAsync(moduleIdx == 0);
+                    showCoursePrerequisitesDialog(selectedCourse, finalUpdated);
+                });
+            } catch (Exception e) {
+                String errorMsg = e.getMessage() != null ? e.getMessage() : e.toString();
+                SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
+                        "Error adding prerequisite: " + errorMsg,
+                        "Error", JOptionPane.ERROR_MESSAGE));
+            }
+        }).start();
+    }
 }
