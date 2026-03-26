@@ -10,7 +10,7 @@ public class Course {
     private String courseName;
     private Integer credits;
     private String description;
-    private List<Course> prerequisiteIds;
+    private List<Course> prerequisites;
 
     public Course() {}
 
@@ -75,12 +75,21 @@ public class Course {
         return courseCode + " - " + courseName;
     }
 
+    public List<Course> getPrerequisites() {
+        return prerequisites;
+    }
+
+    public void setPrerequisites(List<Course> prerequisites) {
+        this.prerequisites = prerequisites;
+    }
+
+    // Backward-compatible aliases if older UI code still uses the previous naming.
     public List<Course> getPrerequisiteIds() {
-        return prerequisiteIds;
+        return prerequisites;
     }
 
     public void setPrerequisiteIds(List<Course> prerequisiteIds) {
-        this.prerequisiteIds = prerequisiteIds;
+        this.prerequisites = prerequisiteIds;
     }
 }
 

@@ -67,7 +67,10 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
                         revalidate();
                         repaint();
                     } catch (Exception layoutError) {
-                        layoutError.printStackTrace();
+                        String errorMsg = layoutError.getMessage() != null ? layoutError.getMessage() : layoutError.toString();
+                        JOptionPane.showMessageDialog(this,
+                                "Error rendering course layout: " + errorMsg,
+                                "UI Error", JOptionPane.ERROR_MESSAGE);
                     }
                 });
             } catch (Exception e) {
@@ -80,7 +83,10 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
                         revalidate();
                         repaint();
                     } catch (Exception ex) {
-                        ex.printStackTrace();
+                        String nestedErrorMsg = ex.getMessage() != null ? ex.getMessage() : ex.toString();
+                        JOptionPane.showMessageDialog(this,
+                                "Error updating course screen: " + nestedErrorMsg,
+                                "UI Error", JOptionPane.ERROR_MESSAGE);
                     }
                 });
             }
@@ -186,7 +192,7 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
 
             // Add click handlers for course management
             if (items[i][0].equals("Manage Courses")) {
-                card.setOnClickAction(() -> showManageCoursesDialog());
+                card.setOnClickAction(this::showManageCoursesDialog);
             } else if (items[i][0].equals("Edit Prerequisite Structures")) {
                 card.setOnClickAction(this::showManagePrerequisitesDialog);
             }
@@ -281,7 +287,7 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
                 new Thread(() -> {
                     try {
                         // Add the new course to the database using the API
-                        Course addedCourse = ApiClient.addCourse(courseCode, courseName, credits, description);
+                        ApiClient.addCourse(courseCode, courseName, credits, description);
 
                         // Show success message and refresh the course list
                         SwingUtilities.invokeLater(() -> {
@@ -380,7 +386,7 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
 
                 new Thread(() -> {
                     try {
-                        Course editedCourse = ApiClient.editCourse(selectedCourse.getId(), courseCode, courseName, credits, description);
+                        ApiClient.editCourse(selectedCourse.getId(), courseCode, courseName, credits, description);
                         SwingUtilities.invokeLater(() -> {
                             JOptionPane.showMessageDialog(this,
                                     "Course updated successfully!",

@@ -1,6 +1,5 @@
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-import com.google.gson.JsonObject;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -21,6 +20,10 @@ public class ApiClient {
                 .build();
 
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        // Error handling for failed API calls
+        if (response.statusCode() != 200) {
+            throw new Exception("Failed to load courses: " + response.body());
+        }
         return gson.fromJson(response.body(), new TypeToken<List<Course>>(){}.getType());
     }
 
@@ -35,6 +38,10 @@ public class ApiClient {
                 .build();
 
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        // Error handling for failed API calls
+        if (response.statusCode() != 200 && response.statusCode() != 201) {
+            throw new Exception("Failed to add course: " + response.body());
+        }
         return gson.fromJson(response.body(), Course.class);
     }
 
@@ -49,6 +56,10 @@ public class ApiClient {
                 .build();
 
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        // Error handling for failed API calls
+        if (response.statusCode() != 200) {
+            throw new Exception("Failed to edit course: " + response.body());
+        }
         return gson.fromJson(response.body(), Course.class);
     }
 

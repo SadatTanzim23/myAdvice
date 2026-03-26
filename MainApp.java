@@ -39,6 +39,10 @@ public class MainApp extends JFrame {
         southLayout .show(southPanel,  "FOOTER");
     }
 
+    private void handleBackAction(java.awt.event.ActionEvent event) {
+        showMenu();
+    }
+
     public void showModule(int idx) {
         headerSubLabel.setText(myAdvice.MODULE_META[idx][1] + "  |  " + myAdvice.MODULE_META[idx][2]);
         // If navigating to Curriculum Advising, refresh that panel first
@@ -121,7 +125,7 @@ public class MainApp extends JFrame {
         p.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, myAdvice.DIVIDER));
 
         BackButton back = new BackButton("<- BACK");
-        back.addActionListener(e -> showMenu());
+        back.addActionListener(this::handleBackAction);
         p.add(back);
         return p;
     }
