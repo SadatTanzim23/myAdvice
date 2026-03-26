@@ -7,6 +7,7 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
     private final int moduleIdx;
     private List<Course> allCourses;
     private List<Faculty> allFaculty;
+    private List<Student> allStudents;
 
     public ModuleScreen(int idx) {
         this.moduleIdx = idx;
@@ -198,6 +199,8 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
                 card.setOnClickAction(this::showManagePrerequisitesDialog);
             } else if (items[i][0].equals("Create / Edit Timetable")){
                 card.setOnClickAction(this::showManageSectionsDialog);
+            } else if (items[i][0].equals("Manage User Profiles")) {
+                card.setOnClickAction(this::showManageUserProfilesDialog);
             }
 
             p.add(card, gbc);
@@ -510,6 +513,435 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
                 String errorMsg = e.getMessage() != null ? e.getMessage() : e.toString();
                 SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
                         "Error: " + errorMsg,
+                        "Error", JOptionPane.ERROR_MESSAGE));
+            }
+        }).start();
+    }
+
+    private void fetchStudentsThen(Runnable onSuccess) {
+        new Thread(() -> {
+            try {
+                List<Student> students = ApiClient.getAllStudents();
+                if (students == null) {
+                    students = new java.util.ArrayList<>();
+                }
+                allStudents = students;
+                if (onSuccess != null) {
+                    SwingUtilities.invokeLater(onSuccess);
+                }
+            } catch (Exception e) {
+                String errorMsg = e.getMessage() != null ? e.getMessage() : e.toString();
+                SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
+                        "Error: " + errorMsg,
+                        "Error", JOptionPane.ERROR_MESSAGE));
+            }
+        }).start();
+    }
+
+    private void showManageUserProfilesDialog() {
+        String[] options = {"Manage Faculty", "Manage Students", "Cancel"};
+        int choice = JOptionPane.showOptionDialog(this,
+                "Choose which profiles to manage:",
+                "Manage User Profiles",
+                JOptionPane.DEFAULT_OPTION,
+                JOptionPane.PLAIN_MESSAGE,
+                null,
+                options,
+                options[0]);
+
+        switch (choice) {
+            case 0 -> showManageFacultyProfilesDialog();
+            case 1 -> showManageStudentProfilesDialog();
+            default -> { }
+        }
+    }
+
+    private void showManageFacultyProfilesDialog() {
+        String[] options = {"View Faculty", "Add Faculty", "Edit Faculty", "Delete Faculty", "Cancel"};
+        int choice = JOptionPane.showOptionDialog(this,
+                "Choose a faculty action:",
+                "Manage Faculty",
+                JOptionPane.DEFAULT_OPTION,
+                JOptionPane.PLAIN_MESSAGE,
+                null,
+                options,
+                options[0]);
+
+        switch (choice) {
+            case 0 -> fetchFacultyThen(this::showFacultyListDialog);
+            case 1 -> showAddFacultyDialog(null);
+            case 2 -> fetchFacultyThen(this::showEditFacultyDialog);
+            case 3 -> fetchFacultyThen(this::showDeleteFacultyDialog);
+            default -> { }
+        }
+    }
+
+    private void showFacultyListDialog() {
+        if (allFaculty == null || allFaculty.isEmpty()) {
+            JOptionPane.showMessageDialog(this,
+                    "No faculty found.",
+                    "Info", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+
+        StringBuilder sb = new StringBuilder("Faculty List:\n\n");
+        for (Faculty f : allFaculty) {
+            sb.append("- ")
+                    .append(f.getFirstName()).append(" ").append(f.getLastName())
+                    .append(" | ").append(f.getEmail())
+                    .append(" | ").append(f.getDepartment())
+                    .append("\n");
+        }
+
+        JTextArea textArea = new JTextArea(sb.toString(), 16, 50);
+        textArea.setEditable(false);
+        JOptionPane.showMessageDialog(this, new JScrollPane(textArea),
+                "Faculty", JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    private void showEditFacultyDialog() {
+        if (allFaculty == null || allFaculty.isEmpty()) {
+            JOptionPane.showMessageDialog(this,
+                    "No faculty available to edit.",
+                    "Info", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+
+        String[] options = new String[allFaculty.size()];
+        for (int i = 0; i < allFaculty.size(); i++) {
+            Faculty f = allFaculty.get(i);
+            options[i] = f.getFirstName() + " " + f.getLastName() + " (" + f.getEmail() + ")";
+        }
+
+        int selectedIndex = JOptionPane.showOptionDialog(this,
+                "Select faculty to edit:",
+                "Edit Faculty",
+                JOptionPane.DEFAULT_OPTION,
+                JOptionPane.PLAIN_MESSAGE,
+                null,
+                options,
+                options[0]);
+
+        if (selectedIndex < 0) return;
+        Faculty selected = allFaculty.get(selectedIndex);
+
+        JPanel panel = new JPanel(new GridLayout(4, 2, 8, 8));
+        panel.setBorder(new EmptyBorder(16, 16, 16, 16));
+        JTextField firstNameField = new JTextField(selected.getFirstName());
+        JTextField lastNameField = new JTextField(selected.getLastName());
+        JTextField emailField = new JTextField(selected.getEmail());
+        JTextField departmentField = new JTextField(selected.getDepartment());
+
+        panel.add(new JLabel("First Name:")); panel.add(firstNameField);
+        panel.add(new JLabel("Last Name:")); panel.add(lastNameField);
+        panel.add(new JLabel("Email:")); panel.add(emailField);
+        panel.add(new JLabel("Department:")); panel.add(departmentField);
+
+        int result = JOptionPane.showConfirmDialog(this, panel, "Edit Faculty",
+                JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+        if (result != JOptionPane.OK_OPTION) return;
+
+        Faculty updated = new Faculty();
+        updated.setFirstName(firstNameField.getText().trim());
+        updated.setLastName(lastNameField.getText().trim());
+        updated.setEmail(emailField.getText().trim());
+        updated.setDepartment(departmentField.getText().trim());
+
+        if (updated.getFirstName().isEmpty() || updated.getLastName().isEmpty()
+                || updated.getEmail().isEmpty() || updated.getDepartment().isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Please fill in all fields.",
+                    "Validation Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        new Thread(() -> {
+            try {
+                ApiClient.editFaculty(selected.getId(), updated);
+                SwingUtilities.invokeLater(() -> {
+                    JOptionPane.showMessageDialog(this, "Faculty updated successfully.",
+                            "Success", JOptionPane.INFORMATION_MESSAGE);
+                    fetchFacultyThen(null);
+                });
+            } catch (Exception e) {
+                String errorMsg = e.getMessage() != null ? e.getMessage() : e.toString();
+                SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
+                        "Error editing faculty: " + errorMsg,
+                        "Error", JOptionPane.ERROR_MESSAGE));
+            }
+        }).start();
+    }
+
+    private void showDeleteFacultyDialog() {
+        if (allFaculty == null || allFaculty.isEmpty()) {
+            JOptionPane.showMessageDialog(this,
+                    "No faculty available to delete.",
+                    "Info", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+
+        String[] options = new String[allFaculty.size()];
+        for (int i = 0; i < allFaculty.size(); i++) {
+            Faculty f = allFaculty.get(i);
+            options[i] = f.getFirstName() + " " + f.getLastName() + " (" + f.getEmail() + ")";
+        }
+
+        int selectedIndex = JOptionPane.showOptionDialog(this,
+                "Select faculty to delete:",
+                "Delete Faculty",
+                JOptionPane.DEFAULT_OPTION,
+                JOptionPane.WARNING_MESSAGE,
+                null,
+                options,
+                options[0]);
+
+        if (selectedIndex < 0) return;
+        Faculty selected = allFaculty.get(selectedIndex);
+
+        int confirm = JOptionPane.showConfirmDialog(this,
+                "Delete faculty " + selected + "?",
+                "Confirm Delete",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.WARNING_MESSAGE);
+        if (confirm != JOptionPane.YES_OPTION) return;
+
+        new Thread(() -> {
+            try {
+                ApiClient.deleteFaculty(selected.getId());
+                SwingUtilities.invokeLater(() -> {
+                    JOptionPane.showMessageDialog(this, "Faculty deleted successfully.",
+                            "Success", JOptionPane.INFORMATION_MESSAGE);
+                    fetchFacultyThen(null);
+                });
+            } catch (Exception e) {
+                String errorMsg = e.getMessage() != null ? e.getMessage() : e.toString();
+                SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
+                        "Error deleting faculty: " + errorMsg,
+                        "Error", JOptionPane.ERROR_MESSAGE));
+            }
+        }).start();
+    }
+
+    private void showManageStudentProfilesDialog() {
+        String[] options = {"View Students", "Add Student", "Edit Student", "Delete Student", "Cancel"};
+        int choice = JOptionPane.showOptionDialog(this,
+                "Choose a student action:",
+                "Manage Students",
+                JOptionPane.DEFAULT_OPTION,
+                JOptionPane.PLAIN_MESSAGE,
+                null,
+                options,
+                options[0]);
+
+        switch (choice) {
+            case 0 -> fetchStudentsThen(this::showStudentListDialog);
+            case 1 -> showAddStudentDialog();
+            case 2 -> fetchStudentsThen(this::showEditStudentDialog);
+            case 3 -> fetchStudentsThen(this::showDeleteStudentDialog);
+            default -> { }
+        }
+    }
+
+    private void showStudentListDialog() {
+        if (allStudents == null || allStudents.isEmpty()) {
+            JOptionPane.showMessageDialog(this,
+                    "No students found.",
+                    "Info", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+
+        StringBuilder sb = new StringBuilder("Student List:\n\n");
+        for (Student s : allStudents) {
+            sb.append("- ")
+                    .append(s.getFirstName()).append(" ").append(s.getLastName())
+                    .append(" | ").append(s.getStudentNumber())
+                    .append(" | ").append(s.getEmail())
+                    .append(" | ").append(s.getFacultyName())
+                    .append(" / ").append(s.getProgramName())
+                    .append("\n");
+        }
+
+        JTextArea textArea = new JTextArea(sb.toString(), 16, 55);
+        textArea.setEditable(false);
+        JOptionPane.showMessageDialog(this, new JScrollPane(textArea),
+                "Students", JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    private void showAddStudentDialog() {
+        JPanel panel = new JPanel(new GridLayout(6, 2, 8, 8));
+        panel.setBorder(new EmptyBorder(16, 16, 16, 16));
+        JTextField firstNameField = new JTextField();
+        JTextField lastNameField = new JTextField();
+        JTextField emailField = new JTextField();
+        JTextField studentNumberField = new JTextField();
+        JTextField facultyField = new JTextField();
+        JTextField programField = new JTextField();
+
+        panel.add(new JLabel("First Name:")); panel.add(firstNameField);
+        panel.add(new JLabel("Last Name:")); panel.add(lastNameField);
+        panel.add(new JLabel("Email:")); panel.add(emailField);
+        panel.add(new JLabel("Student Number:")); panel.add(studentNumberField);
+        panel.add(new JLabel("Faculty:")); panel.add(facultyField);
+        panel.add(new JLabel("Program:")); panel.add(programField);
+
+        int result = JOptionPane.showConfirmDialog(this, panel, "Add Student",
+                JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+        if (result != JOptionPane.OK_OPTION) return;
+
+        Student student = new Student();
+        student.setFirstName(firstNameField.getText().trim());
+        student.setLastName(lastNameField.getText().trim());
+        student.setEmail(emailField.getText().trim());
+        student.setStudentNumber(studentNumberField.getText().trim());
+        student.setFacultyName(facultyField.getText().trim());
+        student.setProgramName(programField.getText().trim());
+
+        if (student.getFirstName().isEmpty() || student.getLastName().isEmpty() || student.getEmail().isEmpty()
+                || student.getStudentNumber().isEmpty() || student.getFacultyName().isEmpty() || student.getProgramName().isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Please fill in all fields.",
+                    "Validation Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        new Thread(() -> {
+            try {
+                ApiClient.addStudent(student);
+                SwingUtilities.invokeLater(() -> {
+                    JOptionPane.showMessageDialog(this, "Student added successfully.",
+                            "Success", JOptionPane.INFORMATION_MESSAGE);
+                    fetchStudentsThen(null);
+                });
+            } catch (Exception e) {
+                String errorMsg = e.getMessage() != null ? e.getMessage() : e.toString();
+                SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
+                        "Error adding student: " + errorMsg,
+                        "Error", JOptionPane.ERROR_MESSAGE));
+            }
+        }).start();
+    }
+
+    private void showEditStudentDialog() {
+        if (allStudents == null || allStudents.isEmpty()) {
+            JOptionPane.showMessageDialog(this,
+                    "No students available to edit.",
+                    "Info", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+
+        String[] options = new String[allStudents.size()];
+        for (int i = 0; i < allStudents.size(); i++) {
+            Student s = allStudents.get(i);
+            options[i] = s.getFirstName() + " " + s.getLastName() + " (" + s.getStudentNumber() + ")";
+        }
+
+        int selectedIndex = JOptionPane.showOptionDialog(this,
+                "Select student to edit:",
+                "Edit Student",
+                JOptionPane.DEFAULT_OPTION,
+                JOptionPane.PLAIN_MESSAGE,
+                null,
+                options,
+                options[0]);
+
+        if (selectedIndex < 0) return;
+        Student selected = allStudents.get(selectedIndex);
+
+        JPanel panel = new JPanel(new GridLayout(6, 2, 8, 8));
+        panel.setBorder(new EmptyBorder(16, 16, 16, 16));
+        JTextField firstNameField = new JTextField(selected.getFirstName());
+        JTextField lastNameField = new JTextField(selected.getLastName());
+        JTextField emailField = new JTextField(selected.getEmail());
+        JTextField studentNumberField = new JTextField(selected.getStudentNumber());
+        JTextField facultyField = new JTextField(selected.getFacultyName());
+        JTextField programField = new JTextField(selected.getProgramName());
+
+        panel.add(new JLabel("First Name:")); panel.add(firstNameField);
+        panel.add(new JLabel("Last Name:")); panel.add(lastNameField);
+        panel.add(new JLabel("Email:")); panel.add(emailField);
+        panel.add(new JLabel("Student Number:")); panel.add(studentNumberField);
+        panel.add(new JLabel("Faculty:")); panel.add(facultyField);
+        panel.add(new JLabel("Program:")); panel.add(programField);
+
+        int result = JOptionPane.showConfirmDialog(this, panel, "Edit Student",
+                JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+        if (result != JOptionPane.OK_OPTION) return;
+
+        Student updated = new Student();
+        updated.setFirstName(firstNameField.getText().trim());
+        updated.setLastName(lastNameField.getText().trim());
+        updated.setEmail(emailField.getText().trim());
+        updated.setStudentNumber(studentNumberField.getText().trim());
+        updated.setFacultyName(facultyField.getText().trim());
+        updated.setProgramName(programField.getText().trim());
+
+        if (updated.getFirstName().isEmpty() || updated.getLastName().isEmpty() || updated.getEmail().isEmpty()
+                || updated.getStudentNumber().isEmpty() || updated.getFacultyName().isEmpty() || updated.getProgramName().isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Please fill in all fields.",
+                    "Validation Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        new Thread(() -> {
+            try {
+                ApiClient.editStudent(selected.getId(), updated);
+                SwingUtilities.invokeLater(() -> {
+                    JOptionPane.showMessageDialog(this, "Student updated successfully.",
+                            "Success", JOptionPane.INFORMATION_MESSAGE);
+                    fetchStudentsThen(null);
+                });
+            } catch (Exception e) {
+                String errorMsg = e.getMessage() != null ? e.getMessage() : e.toString();
+                SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
+                        "Error editing student: " + errorMsg,
+                        "Error", JOptionPane.ERROR_MESSAGE));
+            }
+        }).start();
+    }
+
+    private void showDeleteStudentDialog() {
+        if (allStudents == null || allStudents.isEmpty()) {
+            JOptionPane.showMessageDialog(this,
+                    "No students available to delete.",
+                    "Info", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+
+        String[] options = new String[allStudents.size()];
+        for (int i = 0; i < allStudents.size(); i++) {
+            Student s = allStudents.get(i);
+            options[i] = s.getFirstName() + " " + s.getLastName() + " (" + s.getStudentNumber() + ")";
+        }
+
+        int selectedIndex = JOptionPane.showOptionDialog(this,
+                "Select student to delete:",
+                "Delete Student",
+                JOptionPane.DEFAULT_OPTION,
+                JOptionPane.WARNING_MESSAGE,
+                null,
+                options,
+                options[0]);
+
+        if (selectedIndex < 0) return;
+        Student selected = allStudents.get(selectedIndex);
+
+        int confirm = JOptionPane.showConfirmDialog(this,
+                "Delete student " + selected + "?",
+                "Confirm Delete",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.WARNING_MESSAGE);
+        if (confirm != JOptionPane.YES_OPTION) return;
+
+        new Thread(() -> {
+            try {
+                ApiClient.deleteStudent(selected.getId());
+                SwingUtilities.invokeLater(() -> {
+                    JOptionPane.showMessageDialog(this, "Student deleted successfully.",
+                            "Success", JOptionPane.INFORMATION_MESSAGE);
+                    fetchStudentsThen(null);
+                });
+            } catch (Exception e) {
+                String errorMsg = e.getMessage() != null ? e.getMessage() : e.toString();
+                SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
+                        "Error deleting student: " + errorMsg,
                         "Error", JOptionPane.ERROR_MESSAGE));
             }
         }).start();
@@ -876,7 +1308,7 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
         }
         if (allFaculty == null || allFaculty.isEmpty()) {
             JOptionPane.showMessageDialog(this,
-                    "No faculty available. Add faculty first.",
+                    "No faculty available. Please add faculty from Manage User Profiles first.",
                     "Info", JOptionPane.INFORMATION_MESSAGE);
             return;
         }
@@ -1047,7 +1479,7 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
     private void showEditSectionForm(Section selectedSection) {
         if (allFaculty == null || allFaculty.isEmpty()) {
             JOptionPane.showMessageDialog(this,
-                    "No faculty available. Add faculty first.",
+                    "No faculty available. Please add faculty from Manage User Profiles first.",
                     "Info", JOptionPane.INFORMATION_MESSAGE);
             return;
         }
@@ -1182,6 +1614,71 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
                     "Capacity and Enrolled Count must be numbers.",
                     "Validation Error", JOptionPane.ERROR_MESSAGE);
         }
+    }
+
+
+    private void showAddFacultyDialog(Runnable onSuccess) {
+        JPanel panel = new JPanel(new GridLayout(4, 2, 8, 8));
+        panel.setBorder(new EmptyBorder(16, 16, 16, 16));
+
+        JTextField firstNameField = new JTextField();
+        JTextField lastNameField = new JTextField();
+        JTextField emailField = new JTextField();
+        JTextField departmentField = new JTextField();
+
+        panel.add(new JLabel("First Name:"));
+        panel.add(firstNameField);
+        panel.add(new JLabel("Last Name:"));
+        panel.add(lastNameField);
+        panel.add(new JLabel("Email:"));
+        panel.add(emailField);
+        panel.add(new JLabel("Department:"));
+        panel.add(departmentField);
+
+        int result = JOptionPane.showConfirmDialog(this, panel, "Add Faculty",
+                JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+
+        if (result != JOptionPane.OK_OPTION) {
+            return;
+        }
+
+        String firstName = firstNameField.getText().trim();
+        String lastName = lastNameField.getText().trim();
+        String email = emailField.getText().trim();
+        String department = departmentField.getText().trim();
+
+        if (firstName.isEmpty() || lastName.isEmpty() || email.isEmpty() || department.isEmpty()) {
+            JOptionPane.showMessageDialog(this,
+                    "Please fill in all faculty fields.",
+                    "Validation Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        if (!email.contains("@")) {
+            JOptionPane.showMessageDialog(this,
+                    "Please enter a valid email address.",
+                    "Validation Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        new Thread(() -> {
+            try {
+                ApiClient.addFaculty(firstName, lastName, email, department);
+                SwingUtilities.invokeLater(() -> fetchFacultyThen(() -> {
+                    JOptionPane.showMessageDialog(this,
+                            "Faculty added successfully.",
+                            "Success", JOptionPane.INFORMATION_MESSAGE);
+                    if (onSuccess != null) {
+                        onSuccess.run();
+                    }
+                }));
+            } catch (Exception e) {
+                String errorMsg = e.getMessage() != null ? e.getMessage() : e.toString();
+                SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
+                        "Error adding faculty: " + errorMsg,
+                        "Error", JOptionPane.ERROR_MESSAGE));
+            }
+        }).start();
     }
 
     // Delete section dialog
