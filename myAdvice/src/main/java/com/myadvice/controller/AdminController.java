@@ -1,9 +1,12 @@
 package com.myadvice.controller;
 
 import com.myadvice.model.Course;
+import com.myadvice.model.Faculty;
 import com.myadvice.model.Section;
 import com.myadvice.service.AdminService;
+import org.springframework.http.HttpStatus;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -66,6 +69,11 @@ public class AdminController {
     }
 
     // Section management endpoints
+    @GetMapping("/faculty")
+    public List<Faculty> viewFaculty(){
+        return adminService.viewFaculty();
+    }
+
     @GetMapping("/sections")
     public List<Section> viewSections(){
         return adminService.viewSections();
@@ -73,12 +81,20 @@ public class AdminController {
 
     @PostMapping("/sections/add")
     public Section addSection(@RequestBody Section section){
-        return adminService.addSection(section.getCourse(), section.getFaculty(), section.getSectionNumber(), section.getCapacity(), section.getEnrolledCount(), section.getInstructorName(), section.getDayOfWeek());
+        try {
+            return adminService.addSection(section.getCourse(), section.getFaculty(), section.getSectionNumber(), section.getCapacity(), section.getEnrolledCount(), section.getInstructorName(), section.getDayOfWeek());
+        } catch (RuntimeException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage(), e);
+        }
     }
 
     @PutMapping("/sections/edit/{id}")
     public Section editSection(@PathVariable("id") Long id, @RequestBody Section section){
-        return adminService.editSection(section.getId(), section);
+        try {
+            return adminService.editSection(id, section);
+        } catch (RuntimeException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage(), e);
+        }
     }
 
     @DeleteMapping("/sections/delete/{id}")
