@@ -596,8 +596,26 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
         textArea.setWrapStyleWord(true);
 
         JScrollPane scrollPane = new JScrollPane(textArea);
-        JOptionPane.showMessageDialog(this, scrollPane,
-                "Prerequisite Details", JOptionPane.INFORMATION_MESSAGE);
+
+        // Show options for adding/removing prerequisites or exiting
+        String[] options = {"Add Prerequisite", "Remove Prerequisite", "Close"};
+        int choice = JOptionPane.showOptionDialog(
+                this,
+                scrollPane,
+                "Prerequisite Details",
+                JOptionPane.DEFAULT_OPTION,
+                JOptionPane.INFORMATION_MESSAGE,
+                null,
+                options,
+                options[0]
+        );
+
+        // Handle user choice to add/remove prerequisite
+        if (choice == 0) {
+            showAddPrerequisiteDialog(selectedCourse, prerequisites);
+        } else if (choice == 1) {
+            showRemovePrerequisiteDialog(selectedCourse, prerequisites);
+        }
     }
 
     private void showAddPrerequisiteDialog(Course selectedCourse, List<Course> currentPrereqs) {
@@ -648,10 +666,11 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
 
         new Thread(() -> {
             try {
-                // Add the prerequisite using the API
-                List<Course> updated = ApiClient.addCoursePrerequisite(selectedCourse.getId(), toAdd.getId());
-                if (updated == null) updated = new java.util.ArrayList<>();
-                List<Course> finalUpdated = updated;
+                // Add prerequisite, then fetch updated prerequisite list
+                ApiClient.addCoursePrerequisite(selectedCourse.getId(), toAdd.getId());
+                List<Course> updatedPrereqs = ApiClient.getCoursePrerequisites(selectedCourse.getId());
+                if (updatedPrereqs == null) updatedPrereqs = new java.util.ArrayList<>();
+                List<Course> finalUpdated = updatedPrereqs;
 
                 // Show success message and refresh the prerequisite dialog with updated data
                 SwingUtilities.invokeLater(() -> {
@@ -714,10 +733,11 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
         // Remove the prerequisite using the API in a new thread to avoid blocking the UI
         new Thread(() -> {
             try {
-                // Use API to remove the prerequisite, and get the updated list of prerequisites
-                List<Course> updated = ApiClient.removeCoursePrerequisite(selectedCourse.getId(), toRemove.getId());
-                if (updated == null) updated = new java.util.ArrayList<>();
-                List<Course> finalUpdated = updated;
+                // Remove prerequisite, then fetch updated prerequisite list
+                ApiClient.removeCoursePrerequisite(selectedCourse.getId(), toRemove.getId());
+                List<Course> updatedPrereqs = ApiClient.getCoursePrerequisites(selectedCourse.getId());
+                if (updatedPrereqs == null) updatedPrereqs = new java.util.ArrayList<>();
+                List<Course> finalUpdated = updatedPrereqs;
 
                 SwingUtilities.invokeLater(() -> {
                     JOptionPane.showMessageDialog(this,
