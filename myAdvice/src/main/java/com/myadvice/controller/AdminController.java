@@ -76,12 +76,12 @@ public class AdminController {
         return adminService.addSection(section.getCourse(), section.getFaculty(), section.getSectionNumber(), section.getCapacity(), section.getEnrolledCount(), section.getInstructorName(), section.getDayOfWeek());
     }
 
-    @PutMapping("/sections/edit/id")
+    @PutMapping("/sections/edit/{id}")
     public Section editSection(@RequestBody Section section){
         return adminService.editSection(section.getId(), section);
     }
 
-    @DeleteMapping("/sections/delete/id")
+    @DeleteMapping("/sections/delete/{id}")
     public Section deleteSection(@PathVariable("id") Long id){
         return adminService.removeSection(id);
     }
