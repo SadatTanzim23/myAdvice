@@ -224,10 +224,17 @@ public class AdminService {
         return studentRepository.save(student);
     }
 
-    public Faculty addFaculty(String firstName, String lastName, String email, String password){
-        Faculty faculty = new Faculty(firstName, lastName, email, password);
-        facultyRepository.save(faculty);
-        return faculty;
+    public Faculty addFaculty(Faculty faculty){
+        if (faculty == null) {
+            throw new RuntimeException("Faculty is required");
+        }
+        if (faculty.getFirstName() == null || faculty.getFirstName().isBlank()
+                || faculty.getLastName() == null || faculty.getLastName().isBlank()
+                || faculty.getEmail() == null || faculty.getEmail().isBlank()
+                || faculty.getDepartment() == null || faculty.getDepartment().isBlank()) {
+            throw new RuntimeException("Faculty first name, last name, email, and department are required");
+        }
+        return facultyRepository.save(faculty);
     }
 
     public void removeFaculty(Long id){
