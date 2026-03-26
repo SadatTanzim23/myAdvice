@@ -182,6 +182,8 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
             // Add click handlers for course management
             if (items[i][0].equals("Manage Courses")) {
                 card.setOnClickAction(() -> showManageCoursesDialog());
+            } else if (items[i][0].equals("Edit Prerequisite Structures")) {
+                card.setOnClickAction(this::showManagePrerequisitesDialog);
             }
             
             p.add(card, gbc);
@@ -489,6 +491,24 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
     public void refreshCurriculumIfNeeded() {
         if (moduleIdx == 0) {
             loadCoursesAndDisplay();
+        }
+    }
+
+    // Prerequisite Dialog methods
+
+    // Method to call the prerequisite dialog method
+    private void showManagePrerequisitesDialog() {
+        fetchCoursesThen(this::showManagePrerequisitesDialogWithData);
+    }
+
+    // Method to show the prerequisite dialog
+    private void showManagePrerequisitesDialogWithData() {
+        // Check if there are courses available to manage prerequisites, or show an info message if there are none
+        if (allCourses == null || allCourses.isEmpty()) {
+            JOptionPane.showMessageDialog(this,
+                    "No courses available to manage prerequisites.",
+                    "Info", JOptionPane.INFORMATION_MESSAGE);
+            return;
         }
     }
 }
