@@ -174,7 +174,7 @@ public class AdminService {
     }
 
     public List<Schedule> viewScheduleByCourseId(String courseCode){
-        return scheduleRepository.findByCourseCourseCode(courseCode);
+        return scheduleRepository.findByCourseCode(courseCode);
     }
 
     public Transcript addTranscript(Student student, Course course, Double grade, String term){
