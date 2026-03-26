@@ -74,6 +74,15 @@ public class AdminController {
         return adminService.viewFaculty();
     }
 
+    @PostMapping("/faculty/add")
+    public Faculty addFaculty(@RequestBody Faculty faculty){
+        try {
+            return adminService.addFaculty(faculty);
+        } catch (RuntimeException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage(), e);
+        }
+    }
+
     @GetMapping("/sections")
     public List<Section> viewSections(){
         return adminService.viewSections();
