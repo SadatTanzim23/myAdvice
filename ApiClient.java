@@ -128,6 +128,27 @@ public class ApiClient {
         return gson.fromJson(response.body(), new TypeToken<List<Faculty>>(){}.getType());
     }
 
+    public static Faculty addFaculty(String firstName, String lastName, String email, String department) throws Exception {
+        Faculty faculty = new Faculty();
+        faculty.setFirstName(firstName);
+        faculty.setLastName(lastName);
+        faculty.setEmail(email);
+        faculty.setDepartment(department);
+
+        String json = gson.toJson(faculty);
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(BASE_URL + "/admin/faculty/add"))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(json))
+                .build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() != 200 && response.statusCode() != 201) {
+            throw new Exception("Failed to add faculty: " + response.body());
+        }
+        return gson.fromJson(response.body(), Faculty.class);
+    }
+
     // Section API methods
     public static List<Section> getAllSections() throws Exception {
         HttpRequest request = HttpRequest.newBuilder()
