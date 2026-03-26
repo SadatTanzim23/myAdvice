@@ -8,7 +8,7 @@ import java.net.http.HttpResponse;
 import java.util.List;
 
 public class ApiClient {
-    private static final String BASE_URL = "http://localhost:8080";
+    private static final String BASE_URL = "http://localhost:8081";
     private static final HttpClient client = HttpClient.newHttpClient();
     private static final Gson gson = new Gson();
 
@@ -114,6 +114,18 @@ public class ApiClient {
             throw new Exception("Failed to remove prerequisite: " + response.body());
         }
         return gson.fromJson(response.body(), Course.class);
+    }
+
+    public static List<Faculty> getAllFaculty() throws Exception {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(BASE_URL + "/admin/faculty"))
+                .GET()
+                .build();
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() != 200) {
+            throw new Exception("Failed to load faculty: " + response.body());
+        }
+        return gson.fromJson(response.body(), new TypeToken<List<Faculty>>(){}.getType());
     }
 
     // Section API methods
