@@ -766,6 +766,8 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
     }
 
     // Section methods
+
+    // Show main Section management dialog
     private void showManageSectionsDialog() {
         // Display options for Section management
         String[] options = {"List Sections", "Add Section", "Edit Section", "Delete Section", "Cancel"};
@@ -781,14 +783,14 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
         // Get user selection and handle accordingly
         switch (choice) {
             case 0 -> showListSectionsDialog();
-            case 1 -> JOptionPane.showMessageDialog(this, "Add Section");
+            case 1 -> fetchCoursesThen(this::showAddSectionDialog);
             case 2 -> JOptionPane.showMessageDialog(this, "Edit Section");
             case 3 -> JOptionPane.showMessageDialog(this, "Delete Section");
             default -> { }
         }
     }
 
-    // Method to show the list of sections in a dialog
+    // Show all sections in a dialog
     private void showListSectionsDialog() {
         // Fetch all sections from the API in a new thread to avoid blocking the UI
         new Thread(() -> {
@@ -840,5 +842,140 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
             }
         }).start();
     }
+
+    // Add Sections dialog
+    private void showAddSectionDialog() {
+        // Ensure there are courses available to add sections to
+        if (allCourses == null || allCourses.isEmpty()) {
+            JOptionPane.showMessageDialog(this,
+                    "No courses available. Add courses first.",
+                    "Info", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+        // Build a panel for Section addition with information
+        JPanel panel = new JPanel(new GridBagLayout());
+        panel.setBorder(new EmptyBorder(16, 16, 16, 16));
+
+        // Course selection dropdown and input fields for section details
+        JComboBox<Course> courseCombo = new JComboBox<>(allCourses.toArray(new Course[0]));
+        JTextField facultyIdField = new JTextField();
+        JTextField sectionNumberField = new JTextField();
+        JTextField capacityField = new JTextField();
+        JTextField enrolledField = new JTextField("0");
+        JTextField instructorField = new JTextField();
+        JComboBox<String> dayCombo = new JComboBox<>(new String[]{"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"});
+
+        Dimension inputSize = new Dimension(220, 26);
+        courseCombo.setPreferredSize(inputSize);
+        facultyIdField.setPreferredSize(inputSize);
+        sectionNumberField.setPreferredSize(inputSize);
+        capacityField.setPreferredSize(inputSize);
+        enrolledField.setPreferredSize(inputSize);
+        instructorField.setPreferredSize(inputSize);
+        dayCombo.setPreferredSize(inputSize);
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(6, 6, 6, 6);
+        gbc.anchor = GridBagConstraints.WEST;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+
+        gbc.gridx = 0; gbc.gridy = 0; panel.add(new JLabel("Course:"), gbc);
+        gbc.gridx = 1; panel.add(courseCombo, gbc);
+
+        gbc.gridx = 0; gbc.gridy = 1; panel.add(new JLabel("Faculty ID:"), gbc);
+        gbc.gridx = 1; panel.add(facultyIdField, gbc);
+
+        gbc.gridx = 0; gbc.gridy = 2; panel.add(new JLabel("Section Number:"), gbc);
+        gbc.gridx = 1; panel.add(sectionNumberField, gbc);
+
+        gbc.gridx = 0; gbc.gridy = 3; panel.add(new JLabel("Capacity:"), gbc);
+        gbc.gridx = 1; panel.add(capacityField, gbc);
+
+        gbc.gridx = 0; gbc.gridy = 4; panel.add(new JLabel("Enrolled Count:"), gbc);
+        gbc.gridx = 1; panel.add(enrolledField, gbc);
+
+        gbc.gridx = 0; gbc.gridy = 5; panel.add(new JLabel("Instructor Name:"), gbc);
+        gbc.gridx = 1; panel.add(instructorField, gbc);
+
+        gbc.gridx = 0; gbc.gridy = 6; panel.add(new JLabel("Day of Week:"), gbc);
+        gbc.gridx = 1; panel.add(dayCombo, gbc);
+
+        // Confirmation button for adding the section
+        int result = JOptionPane.showConfirmDialog(this, panel, "Add Section",
+                JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+
+        if (result != JOptionPane.OK_OPTION) return;
+
+        // Get selected course and section details from the form fields
+        Course selectedCourse = (Course) courseCombo.getSelectedItem();
+        String facultyIdStr = facultyIdField.getText().trim();
+        String sectionNumber = sectionNumberField.getText().trim();
+        String capacityStr = capacityField.getText().trim();
+        String enrolledStr = enrolledField.getText().trim();
+        String instructorName = instructorField.getText().trim();
+        String dayOfWeek = String.valueOf(dayCombo.getSelectedItem());
+
+        if (selectedCourse == null || facultyIdStr.isEmpty() || sectionNumber.isEmpty()
+                || capacityStr.isEmpty() || enrolledStr.isEmpty()
+                || instructorName.isEmpty() || dayOfWeek.isEmpty()) {
+            JOptionPane.showMessageDialog(this,
+                    "Please fill in all fields.",
+                    "Validation Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        try {
+            // Fetch capacity and enrolled count variables and validate
+            Long facultyId = Long.parseLong(facultyIdStr);
+            Integer capacity = Integer.parseInt(capacityStr);
+            Integer enrolled = Integer.parseInt(enrolledStr);
+
+            if (facultyId <= 0) {
+                JOptionPane.showMessageDialog(this,
+                        "Faculty ID must be a positive number.",
+                        "Validation Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            if (capacity <= 0 || enrolled < 0 || enrolled > capacity) {
+                JOptionPane.showMessageDialog(this,
+                        "Ensure capacity > 0 and 0 <= enrolled count <= capacity.",
+                        "Validation Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            // Create and save the new section with all fields using the API
+            Faculty facultyRef = new Faculty();
+            facultyRef.setId(facultyId);
+
+            Section newSection = new Section();
+            newSection.setCourse(selectedCourse);
+            newSection.setFaculty(facultyRef);
+            newSection.setSectionNumber(sectionNumber);
+            newSection.setCapacity(capacity);
+            newSection.setEnrolledCount(enrolled);
+            newSection.setInstructorName(instructorName);
+            newSection.setDayOfWeek(dayOfWeek);
+
+            new Thread(() -> {
+                try {
+                    ApiClient.addSection(newSection);
+                    SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
+                            "Section added successfully.",
+                            "Success", JOptionPane.INFORMATION_MESSAGE));
+                } catch (Exception e) {
+                    String errorMsg = e.getMessage() != null ? e.getMessage() : e.toString();
+                    SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
+                            "Error adding section: " + errorMsg,
+                            "Error", JOptionPane.ERROR_MESSAGE));
+                }
+            }).start();
+
+        } catch (NumberFormatException ex) {
+            JOptionPane.showMessageDialog(this,
+                    "Faculty ID, Capacity, and Enrolled Count must be numbers.",
+                    "Validation Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
 
 }
