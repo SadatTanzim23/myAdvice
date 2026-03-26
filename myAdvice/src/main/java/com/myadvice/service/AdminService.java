@@ -102,7 +102,19 @@ public class AdminService {
     }
 
     public Section addSection(Course course, Faculty faculty, String sectionNumber, Integer capacity, Integer enrolledCount, String instructorName, String dayOfWeek){
-        Section newSectionToAdd = new Section(course, faculty, sectionNumber, capacity, enrolledCount, instructorName, dayOfWeek);
+        if (course == null || course.getId() == null) {
+            throw new RuntimeException("Course is required");
+        }
+        if (faculty == null || faculty.getId() == null) {
+            throw new RuntimeException("Faculty is required");
+        }
+
+        Course managedCourse = courseRepository.findById(course.getId())
+                .orElseThrow(() -> new RuntimeException("Course not found"));
+        Faculty managedFaculty = facultyRepository.findById(faculty.getId())
+                .orElseThrow(() -> new RuntimeException("Faculty not found"));
+
+        Section newSectionToAdd = new Section(managedCourse, managedFaculty, sectionNumber, capacity, enrolledCount, instructorName, dayOfWeek);
         sectionRepository.save(newSectionToAdd);
         return newSectionToAdd; // return newly added section
     }
@@ -115,8 +127,21 @@ public class AdminService {
 
     public Section editSection(Long id, Section updatedSection){
         Section sectionToEdit = sectionRepository.findById(id).orElseThrow(() -> new RuntimeException("Section not found"));
-        sectionToEdit.setCourse(updatedSection.getCourse());
-        sectionToEdit.setFaculty(updatedSection.getFaculty());
+
+        if (updatedSection.getCourse() == null || updatedSection.getCourse().getId() == null) {
+            throw new RuntimeException("Course is required");
+        }
+        if (updatedSection.getFaculty() == null || updatedSection.getFaculty().getId() == null) {
+            throw new RuntimeException("Faculty is required");
+        }
+
+        Course managedCourse = courseRepository.findById(updatedSection.getCourse().getId())
+                .orElseThrow(() -> new RuntimeException("Course not found"));
+        Faculty managedFaculty = facultyRepository.findById(updatedSection.getFaculty().getId())
+                .orElseThrow(() -> new RuntimeException("Faculty not found"));
+
+        sectionToEdit.setCourse(managedCourse);
+        sectionToEdit.setFaculty(managedFaculty);
         sectionToEdit.setSectionNumber(updatedSection.getSectionNumber());
         sectionToEdit.setCapacity(updatedSection.getCapacity());
         sectionToEdit.setEnrolledCount(updatedSection.getEnrolledCount());
@@ -149,7 +174,7 @@ public class AdminService {
     }
 
     public List<Schedule> viewScheduleByCourseId(String courseCode){
-        return scheduleRepository.findByCourseCode(courseCode);
+        return scheduleRepository.findByCourseCourseCode(courseCode);
     }
 
     public Transcript addTranscript(Student student, Course course, Double grade, String term){
