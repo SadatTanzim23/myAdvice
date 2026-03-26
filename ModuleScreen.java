@@ -13,7 +13,7 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
         setOpaque(false);
 
         add(buildSubHeader(idx), BorderLayout.NORTH);
-        
+
         // Load course data from API for Curriculum Advising module
         if (idx == 0) {
             loadCoursesAndDisplay();
@@ -54,8 +54,8 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
                             for (int i = 0; i < allCourses.size(); i++) {
                                 Course course = allCourses.get(i);
                                 courseActions[i] = new String[]{
-                                    course.getCourseCode() + " - " + course.getCourseName(),
-                                    "Credits: " + course.getCredits()
+                                        course.getCourseCode() + " - " + course.getCourseName(),
+                                        "Credits: " + course.getCredits()
                                 };
                             }
                             JPanel coursePanel = buildCoursePanel(courseActions);
@@ -94,14 +94,16 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
         p.setBorder(new EmptyBorder(30, 40, 30, 40));
 
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets  = new Insets(8, 8, 8, 8);
-        gbc.fill    = GridBagConstraints.HORIZONTAL;
+        gbc.insets = new Insets(8, 8, 8, 8);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.weightx = 1;
 
         JLabel heading = new JLabel("Available Courses");
         heading.setFont(new Font("Dialog", Font.BOLD, 13));
         heading.setForeground(myAdvice.TEXT_MUTED);
-        gbc.gridx = 0; gbc.gridy = 0; gbc.gridwidth = 2;
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.gridwidth = 2;
         p.add(heading, gbc); // Add heading
 
         // Create and add ActionCard components for each course
@@ -126,7 +128,8 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
 
     private JPanel buildSubHeader(int idx) {//the subheading under the main heading panel with the module name and subhead
         JPanel p = new JPanel() {
-            @Override protected void paintComponent(Graphics g) {
+            @Override
+            protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setColor(myAdvice.PANEL_BG);
                 g2.fillRect(0, 0, getWidth(), getHeight());
@@ -163,14 +166,16 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
         p.setBorder(new EmptyBorder(30, 40, 30, 40));
 
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets  = new Insets(8, 8, 8, 8);
-        gbc.fill    = GridBagConstraints.HORIZONTAL;
+        gbc.insets = new Insets(8, 8, 8, 8);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.weightx = 1;
 
         JLabel heading = new JLabel("Available Actions");
         heading.setFont(new Font("Dialog", Font.BOLD, 13));
         heading.setForeground(myAdvice.TEXT_MUTED);
-        gbc.gridx = 0; gbc.gridy = 0; gbc.gridwidth = 2;
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.gridwidth = 2;
         p.add(heading, gbc);
 
         for (int i = 0; i < items.length; i++) {
@@ -178,14 +183,14 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
             gbc.gridx = i % 2;
             gbc.gridwidth = 1;
             ActionCard card = new ActionCard(items[i][0], items[i][1]);
-            
+
             // Add click handlers for course management
             if (items[i][0].equals("Manage Courses")) {
                 card.setOnClickAction(() -> showManageCoursesDialog());
             } else if (items[i][0].equals("Edit Prerequisite Structures")) {
                 card.setOnClickAction(this::showManagePrerequisitesDialog);
             }
-            
+
             p.add(card, gbc);
         }
         return p;
@@ -201,21 +206,28 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
 
         // Show course management options
         String[] options = {"Add Course", "Edit Course", "Delete Course", "Cancel"};
-        int choice = JOptionPane.showOptionDialog(this, 
-            "Select an action:", 
-            "Manage Courses", 
-            JOptionPane.DEFAULT_OPTION, 
-            JOptionPane.PLAIN_MESSAGE, 
-            null, 
-            options, 
-            options[0]);
+        int choice = JOptionPane.showOptionDialog(this,
+                "Select an action:",
+                "Manage Courses",
+                JOptionPane.DEFAULT_OPTION,
+                JOptionPane.PLAIN_MESSAGE,
+                null,
+                options,
+                options[0]);
 
         // Show dialog based on button selection (add/edit/delete)
         switch (choice) {
-            case 0: showAddCourseDialog(); break;
-            case 1: showEditCourseDialog(); break;
-            case 2: showDeleteCourseDialog(); break;
-            default: break;
+            case 0:
+                showAddCourseDialog();
+                break;
+            case 1:
+                showEditCourseDialog();
+                break;
+            case 2:
+                showDeleteCourseDialog();
+                break;
+            default:
+                break;
         }
     }
 
@@ -223,16 +235,16 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
     private void showAddCourseDialog() {
         JPanel panel = new JPanel(new GridLayout(4, 2, 8, 8));
         panel.setBorder(new EmptyBorder(16, 16, 16, 16));
-        
+
         JLabel codeLabel = new JLabel("Course Code:");
         JTextField codeField = new JTextField();
-        
+
         JLabel nameLabel = new JLabel("Course Name:");
         JTextField nameField = new JTextField();
-        
+
         JLabel creditsLabel = new JLabel("Credits:");
         JTextField creditsField = new JTextField();
-        
+
         JLabel descLabel = new JLabel("Description:");
         JTextField descField = new JTextField();
 
@@ -245,9 +257,9 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
         panel.add(creditsField);
         panel.add(descLabel);
         panel.add(descField);
-        
-        int result = JOptionPane.showConfirmDialog(this, panel, "Add New Course", 
-            JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+
+        int result = JOptionPane.showConfirmDialog(this, panel, "Add New Course",
+                JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
 
         // If user clicks OK, add the course using the API and refresh the course list, otherwise do nothing
         if (result == JOptionPane.OK_OPTION) {
@@ -258,14 +270,14 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
 
             // Input validation for course addition
             if (courseCode.isEmpty() || courseName.isEmpty() || creditsStr.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Please fill in all required fields", 
-                    "Validation Error", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(this, "Please fill in all required fields",
+                        "Validation Error", JOptionPane.ERROR_MESSAGE);
                 return;
             }
-            
+
             try {
                 Integer credits = Integer.parseInt(creditsStr);
-                
+
                 new Thread(() -> {
                     try {
                         // Add the new course to the database using the API
@@ -273,24 +285,24 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
 
                         // Show success message and refresh the course list
                         SwingUtilities.invokeLater(() -> {
-                            JOptionPane.showMessageDialog(this, 
-                                "Course added successfully!",
-                                "Success", JOptionPane.INFORMATION_MESSAGE);
+                            JOptionPane.showMessageDialog(this,
+                                    "Course added successfully!",
+                                    "Success", JOptionPane.INFORMATION_MESSAGE);
 
                             refreshCoursesAsync(moduleIdx == 0);
                         });
                     } catch (Exception e) {
                         SwingUtilities.invokeLater(() -> {
                             String errorMsg = e.getMessage() != null ? e.getMessage() : e.toString();
-                            JOptionPane.showMessageDialog(this, 
-                                "Error: " + errorMsg,
-                                "Error", JOptionPane.ERROR_MESSAGE);
+                            JOptionPane.showMessageDialog(this,
+                                    "Error: " + errorMsg,
+                                    "Error", JOptionPane.ERROR_MESSAGE);
                         });
                     }
                 }).start();
             } catch (NumberFormatException e) {
-                JOptionPane.showMessageDialog(this, "Credits must be a number", 
-                    "Validation Error", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(this, "Credits must be a number",
+                        "Validation Error", JOptionPane.ERROR_MESSAGE);
             }
         }
     }
@@ -298,46 +310,46 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
     // Show Dialog for editing an existing course
     private void showEditCourseDialog() {
         if (allCourses == null || allCourses.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "No courses available to edit", 
-                "Info", JOptionPane.INFORMATION_MESSAGE);
+            JOptionPane.showMessageDialog(this, "No courses available to edit",
+                    "Info", JOptionPane.INFORMATION_MESSAGE);
             return;
         }
-        
+
         // Create list of course options
         String[] courseOptions = new String[allCourses.size()];
         for (int i = 0; i < allCourses.size(); i++) {
             Course c = allCourses.get(i);
             courseOptions[i] = c.getCourseCode() + " - " + c.getCourseName();
         }
-        
-        int selectedIndex = JOptionPane.showOptionDialog(this, 
-            "Select a course to edit:", 
-            "Edit Course", 
-            JOptionPane.DEFAULT_OPTION, 
-            JOptionPane.PLAIN_MESSAGE, 
-            null, 
-            courseOptions, 
-            courseOptions[0]);
-        
+
+        int selectedIndex = JOptionPane.showOptionDialog(this,
+                "Select a course to edit:",
+                "Edit Course",
+                JOptionPane.DEFAULT_OPTION,
+                JOptionPane.PLAIN_MESSAGE,
+                null,
+                courseOptions,
+                courseOptions[0]);
+
         if (selectedIndex < 0) return; // Cancel
-        
+
         Course selectedCourse = allCourses.get(selectedIndex);
-        
+
         JPanel panel = new JPanel(new GridLayout(4, 2, 8, 8));
         panel.setBorder(new EmptyBorder(16, 16, 16, 16));
-        
+
         JLabel codeLabel = new JLabel("Course Code:");
         JTextField codeField = new JTextField(selectedCourse.getCourseCode());
-        
+
         JLabel nameLabel = new JLabel("Course Name:");
         JTextField nameField = new JTextField(selectedCourse.getCourseName());
-        
+
         JLabel creditsLabel = new JLabel("Credits:");
         JTextField creditsField = new JTextField(selectedCourse.getCredits().toString());
-        
+
         JLabel descLabel = new JLabel("Description:");
         JTextField descField = new JTextField(selectedCourse.getDescription() != null ? selectedCourse.getDescription() : "");
-        
+
         panel.add(codeLabel);
         panel.add(codeField);
         panel.add(nameLabel);
@@ -346,9 +358,9 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
         panel.add(creditsField);
         panel.add(descLabel);
         panel.add(descField);
-        
-        int result = JOptionPane.showConfirmDialog(this, panel, "Edit Course", 
-            JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+
+        int result = JOptionPane.showConfirmDialog(this, panel, "Edit Course",
+                JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
 
         // If user clicks OK, update the course using the API and refresh the course list, otherwise do nothing
         if (result == JOptionPane.OK_OPTION) {
@@ -356,37 +368,37 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
             String courseName = nameField.getText().trim();
             String creditsStr = creditsField.getText().trim();
             String description = descField.getText().trim();
-            
+
             if (courseCode.isEmpty() || courseName.isEmpty() || creditsStr.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Please fill in all required fields", 
-                    "Validation Error", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(this, "Please fill in all required fields",
+                        "Validation Error", JOptionPane.ERROR_MESSAGE);
                 return;
             }
-            
+
             try {
                 Integer credits = Integer.parseInt(creditsStr);
-                
+
                 new Thread(() -> {
                     try {
                         Course editedCourse = ApiClient.editCourse(selectedCourse.getId(), courseCode, courseName, credits, description);
                         SwingUtilities.invokeLater(() -> {
-                            JOptionPane.showMessageDialog(this, 
-                                "Course updated successfully!",
-                                "Success", JOptionPane.INFORMATION_MESSAGE);
+                            JOptionPane.showMessageDialog(this,
+                                    "Course updated successfully!",
+                                    "Success", JOptionPane.INFORMATION_MESSAGE);
                             refreshCoursesAsync(moduleIdx == 0);
                         });
                     } catch (Exception e) {
                         SwingUtilities.invokeLater(() -> {
                             String errorMsg = e.getMessage() != null ? e.getMessage() : e.toString();
-                            JOptionPane.showMessageDialog(this, 
-                                "Error: " + errorMsg,
-                                "Error", JOptionPane.ERROR_MESSAGE);
+                            JOptionPane.showMessageDialog(this,
+                                    "Error: " + errorMsg,
+                                    "Error", JOptionPane.ERROR_MESSAGE);
                         });
                     }
                 }).start();
             } catch (NumberFormatException e) {
-                JOptionPane.showMessageDialog(this, "Credits must be a number", 
-                    "Validation Error", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(this, "Credits must be a number",
+                        "Validation Error", JOptionPane.ERROR_MESSAGE);
             }
         }
     }
@@ -396,11 +408,11 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
 
         // Check if there are courses available to delete, or show an info message if there are none
         if (allCourses == null || allCourses.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "No courses available to delete", 
-                "Info", JOptionPane.INFORMATION_MESSAGE);
+            JOptionPane.showMessageDialog(this, "No courses available to delete",
+                    "Info", JOptionPane.INFORMATION_MESSAGE);
             return;
         }
-        
+
         // Show all courses for selection before deletion
         String[] courseOptions = new String[allCourses.size()];
         for (int i = 0; i < allCourses.size(); i++) {
@@ -409,25 +421,25 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
         }
 
         // Fetch selected course index from user selection
-        int selectedIndex = JOptionPane.showOptionDialog(this, 
-            "Select a course to delete:", 
-            "Delete Course", 
-            JOptionPane.DEFAULT_OPTION, 
-            JOptionPane.PLAIN_MESSAGE, 
-            null, 
-            courseOptions, 
-            courseOptions[0]);
-        
+        int selectedIndex = JOptionPane.showOptionDialog(this,
+                "Select a course to delete:",
+                "Delete Course",
+                JOptionPane.DEFAULT_OPTION,
+                JOptionPane.PLAIN_MESSAGE,
+                null,
+                courseOptions,
+                courseOptions[0]);
+
         if (selectedIndex < 0) return; // Cancel
-        
+
         Course selectedCourse = allCourses.get(selectedIndex);
 
         // Confirm deletion with user before proceeding
-        int confirmDelete = JOptionPane.showConfirmDialog(this, 
-            "Are you sure you want to delete: " + selectedCourse.getCourseCode() + "?", 
-            "Confirm Delete", 
-            JOptionPane.YES_NO_OPTION, 
-            JOptionPane.WARNING_MESSAGE);
+        int confirmDelete = JOptionPane.showConfirmDialog(this,
+                "Are you sure you want to delete: " + selectedCourse.getCourseCode() + "?",
+                "Confirm Delete",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.WARNING_MESSAGE);
 
         // If user confirms deletion, delete the course using the API and refresh the course list, otherwise do nothing
         if (confirmDelete == JOptionPane.YES_OPTION) {
@@ -435,17 +447,17 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
                 try {
                     ApiClient.deleteCourse(selectedCourse.getId());
                     SwingUtilities.invokeLater(() -> {
-                        JOptionPane.showMessageDialog(this, 
-                            "Course deleted successfully!",
-                            "Success", JOptionPane.INFORMATION_MESSAGE);
+                        JOptionPane.showMessageDialog(this,
+                                "Course deleted successfully!",
+                                "Success", JOptionPane.INFORMATION_MESSAGE);
                         refreshCoursesAsync(moduleIdx == 0);
                     });
                 } catch (Exception e) {
                     SwingUtilities.invokeLater(() -> {
                         String errorMsg = e.getMessage() != null ? e.getMessage() : e.toString();
-                        JOptionPane.showMessageDialog(this, 
-                            "Error: " + errorMsg,
-                            "Error", JOptionPane.ERROR_MESSAGE);
+                        JOptionPane.showMessageDialog(this,
+                                "Error: " + errorMsg,
+                                "Error", JOptionPane.ERROR_MESSAGE);
                     });
                 }
             }).start();
@@ -529,5 +541,62 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
                 courseOptions[0]);
 
         if (selectedIndex < 0) return; // Cancel
+
+        // Fetch selected course from the list based on user selection
+        Course selectedCourse = allCourses.get(selectedIndex);
+
+        // Fetch & load prerequisites in new thread to avoid blocking the UI
+        new Thread(() -> {
+
+            // Fetch course prerequisites using the ApiClient, with error handling
+            try {
+                List<Course> prerequisites = ApiClient.getCoursePrerequisites(selectedCourse.getId());
+                if (prerequisites == null) {
+                    prerequisites = new java.util.ArrayList<>();
+                }
+                List<Course> finalPrerequisites = prerequisites;
+
+                SwingUtilities.invokeLater(() ->
+                        showCoursePrerequisitesDialog(selectedCourse, finalPrerequisites));
+            } catch (Exception e) {
+                String errorMsg = e.getMessage() != null ? e.getMessage() : e.toString();
+                SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
+                        "Error loading prerequisites: " + errorMsg,
+                        "Error", JOptionPane.ERROR_MESSAGE));
+            }
+        }).start();
+    }
+
+    // Method to show course with prerequisites
+    private void showCoursePrerequisitesDialog(Course selectedCourse, List<Course> prerequisites) {
+        // Dialog message with course name and prerequisites
+        StringBuilder sb = new StringBuilder();
+        sb.append("Course: ")
+                .append(selectedCourse.getCourseCode())
+                .append(" - ")
+                .append(selectedCourse.getCourseName())
+                .append("\n\nCurrent prerequisites:\n");
+
+        if (prerequisites.isEmpty()) {
+            sb.append("- None");
+        } else {
+            for (Course prereq : prerequisites) {
+                sb.append("- ")
+                        .append(prereq.getCourseCode())
+                        .append(" - ")
+                        .append(prereq.getCourseName())
+                        .append("\n");
+            }
+        }
+
+        // Display message of course with prerequisites
+        JTextArea textArea = new JTextArea(sb.toString(), 14, 45);
+        textArea.setEditable(false);
+        textArea.setLineWrap(true);
+        textArea.setWrapStyleWord(true);
+
+        JScrollPane scrollPane = new JScrollPane(textArea);
+        JOptionPane.showMessageDialog(this, scrollPane,
+                "Prerequisite Details", JOptionPane.INFORMATION_MESSAGE);
     }
 }
