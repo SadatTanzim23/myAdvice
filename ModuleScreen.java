@@ -195,6 +195,8 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
                 card.setOnClickAction(this::showManageCoursesDialog);
             } else if (items[i][0].equals("Edit Prerequisite Structures")) {
                 card.setOnClickAction(this::showManagePrerequisitesDialog);
+            } else if (items[i][0].equals("Create / Edit Timetable")){
+                card.setOnClickAction(this::showManageSectionsDialog);
             }
 
             p.add(card, gbc);
@@ -762,4 +764,81 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
             }
         }).start();
     }
+
+    // Section methods
+    private void showManageSectionsDialog() {
+        // Display options for Section management
+        String[] options = {"List Sections", "Add Section", "Edit Section", "Delete Section", "Cancel"};
+        int choice = JOptionPane.showOptionDialog(this,
+                "Select a section management action:",
+                "Create / Edit Timetable",
+                JOptionPane.DEFAULT_OPTION,
+                JOptionPane.PLAIN_MESSAGE,
+                null,
+                options,
+                options[0]);
+
+        // Get user selection and handle accordingly
+        switch (choice) {
+            case 0 -> showListSectionsDialog();
+            case 1 -> JOptionPane.showMessageDialog(this, "Add Section");
+            case 2 -> JOptionPane.showMessageDialog(this, "Edit Section");
+            case 3 -> JOptionPane.showMessageDialog(this, "Delete Section");
+            default -> { }
+        }
+    }
+
+    // Method to show the list of sections in a dialog
+    private void showListSectionsDialog() {
+        // Fetch all sections from the API in a new thread to avoid blocking the UI
+        new Thread(() -> {
+            try {
+                List<Section> sections = ApiClient.getAllSections();
+                if (sections == null) {
+                    sections = new java.util.ArrayList<>();
+                }
+                List<Section> finalSections = sections;
+
+                // Build a list of section options for selection
+                SwingUtilities.invokeLater(() -> {
+                    StringBuilder sb = new StringBuilder("Available Sections:\n\n");
+                    if (finalSections.isEmpty()) {
+                        sb.append("No sections found.");
+                    } else {
+                        for (Section s : finalSections) {
+                            String courseCode = (s.getCourse() != null && s.getCourse().getCourseCode() != null)
+                                    ? s.getCourse().getCourseCode()
+                                    : "N/A";
+                            String secNo = s.getSectionNumber() != null ? s.getSectionNumber() : "N/A";
+                            String instructor = s.getInstructorName() != null ? s.getInstructorName() : "N/A";
+                            String day = s.getDayOfWeek() != null ? s.getDayOfWeek() : "N/A";
+
+                            sb.append("- ")
+                                    .append(courseCode).append(" | Sec ").append(secNo)
+                                    .append(" | ").append(instructor)
+                                    .append(" | ").append(day)
+                                    .append("\n");
+                        }
+                    }
+
+                    JTextArea textArea = new JTextArea(sb.toString(), 18, 55);
+                    textArea.setEditable(false);
+                    textArea.setLineWrap(true);
+                    textArea.setWrapStyleWord(true);
+
+                    // Show the dialog with the list of sections when available
+                    JOptionPane.showMessageDialog(this,
+                            new JScrollPane(textArea),
+                            "Sections",
+                            JOptionPane.INFORMATION_MESSAGE);
+                });
+            } catch (Exception e) {
+                String errorMsg = e.getMessage() != null ? e.getMessage() : e.toString();
+                SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
+                        "Error loading sections: " + errorMsg,
+                        "Error", JOptionPane.ERROR_MESSAGE));
+            }
+        }).start();
+    }
+
 }
