@@ -77,7 +77,7 @@ public class AdminController {
     }
 
     @PutMapping("/sections/edit/{id}")
-    public Section editSection(@RequestBody Section section){
+    public Section editSection(@PathVariable("id") Long id, @RequestBody Section section){
         return adminService.editSection(section.getId(), section);
     }
 
