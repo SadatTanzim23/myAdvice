@@ -1,7 +1,10 @@
 import java.awt.*;
 import javax.swing.*;
 import javax.swing.border.*;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 
 public class ModuleScreen extends JPanel {//the module screens you go in through the main screen 
     private final int moduleIdx;
@@ -204,6 +207,18 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
                 card.setOnClickAction(this::showManageUserProfilesDialog);
             } else if (items[i][0].equals("Update Transcript Records")) {
                 card.setOnClickAction(this::showManageTranscriptsDialog);
+            } else if (items[i][0].equals("Student List")) {
+                card.setOnClickAction(() -> fetchReportStudentsThen(this::showStudentListDialog));
+            } else if (items[i][0].equals("Faculty List")) {
+                card.setOnClickAction(() -> fetchReportFacultyThen(this::showFacultyListDialog));
+            } else if (items[i][0].equals("Most Active Students")) {
+                card.setOnClickAction(this::showMostActiveStudentsDialog);
+            } else if (items[i][0].equals("Busiest Advisors")) {
+                card.setOnClickAction(this::showBusiestAdvisorsDialog);
+            } else if (items[i][0].equals("Course Enrolment Stats")) {
+                card.setOnClickAction(this::showCourseEnrolmentStatsDialog);
+            } else if (items[i][0].equals("Dashboard Overview")) {
+                card.setOnClickAction(this::showDashboardOverviewDialog);
             }
 
             p.add(card, gbc);
@@ -529,6 +544,46 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
                     students = new java.util.ArrayList<>();
                 }
                 allStudents = students;
+                if (onSuccess != null) {
+                    SwingUtilities.invokeLater(onSuccess);
+                }
+            } catch (Exception e) {
+                String errorMsg = e.getMessage() != null ? e.getMessage() : e.toString();
+                SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
+                        "Error: " + errorMsg,
+                        "Error", JOptionPane.ERROR_MESSAGE));
+            }
+        }).start();
+    }
+
+    private void fetchReportStudentsThen(Runnable onSuccess) {
+        new Thread(() -> {
+            try {
+                List<Student> students = ApiClient.getReportStudents();
+                if (students == null) {
+                    students = new ArrayList<>();
+                }
+                allStudents = students;
+                if (onSuccess != null) {
+                    SwingUtilities.invokeLater(onSuccess);
+                }
+            } catch (Exception e) {
+                String errorMsg = e.getMessage() != null ? e.getMessage() : e.toString();
+                SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
+                        "Error: " + errorMsg,
+                        "Error", JOptionPane.ERROR_MESSAGE));
+            }
+        }).start();
+    }
+
+    private void fetchReportFacultyThen(Runnable onSuccess) {
+        new Thread(() -> {
+            try {
+                List<Faculty> faculty = ApiClient.getReportFaculty();
+                if (faculty == null) {
+                    faculty = new ArrayList<>();
+                }
+                allFaculty = faculty;
                 if (onSuccess != null) {
                     SwingUtilities.invokeLater(onSuccess);
                 }
@@ -1265,6 +1320,199 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
     public void refreshCurriculumIfNeeded() {
         if (moduleIdx == 0) {
             loadCoursesAndDisplay();
+        }
+    }
+
+    public void refreshReportsIfNeeded() {
+        if (moduleIdx != 4) {
+            return;
+        }
+        fetchReportStudentsThen(null);
+        fetchReportFacultyThen(null);
+    }
+
+    private void showMostActiveStudentsDialog() {
+        new Thread(() -> {
+            try {
+                List<Map<String, Object>> rows = ApiClient.getMostActiveStudents();
+                SwingUtilities.invokeLater(() -> {
+                    if (rows == null || rows.isEmpty()) {
+                        JOptionPane.showMessageDialog(this,
+                                "No appointment data available.",
+                                "Most Active Students", JOptionPane.INFORMATION_MESSAGE);
+                        return;
+                    }
+
+                    StringBuilder sb = new StringBuilder("Most Active Students:\n\n");
+                    for (Map<String, Object> row : rows) {
+                        String firstName = String.valueOf(row.getOrDefault("firstName", ""));
+                        String lastName = String.valueOf(row.getOrDefault("lastName", ""));
+                        long count = toLong(row.get("appointmentCount"));
+                        sb.append("- ").append(firstName).append(" ").append(lastName)
+                                .append(" | Appointments: ").append(count)
+                                .append("\n");
+                    }
+
+                    JTextArea textArea = new JTextArea(sb.toString(), 14, 50);
+                    textArea.setEditable(false);
+                    JOptionPane.showMessageDialog(this, new JScrollPane(textArea),
+                            "Most Active Students", JOptionPane.INFORMATION_MESSAGE);
+                });
+            } catch (Exception e) {
+                String errorMsg = e.getMessage() != null ? e.getMessage() : e.toString();
+                SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
+                        "Error loading most active students: " + errorMsg,
+                        "Error", JOptionPane.ERROR_MESSAGE));
+            }
+        }).start();
+    }
+
+    private void showBusiestAdvisorsDialog() {
+        new Thread(() -> {
+            try {
+                List<Map<String, Object>> rows = ApiClient.getBusiestAdvisors();
+                SwingUtilities.invokeLater(() -> {
+                    if (rows == null || rows.isEmpty()) {
+                        JOptionPane.showMessageDialog(this,
+                                "No appointment data available.",
+                                "Busiest Advisors", JOptionPane.INFORMATION_MESSAGE);
+                        return;
+                    }
+
+                    StringBuilder sb = new StringBuilder("Busiest Advisors:\n\n");
+                    for (Map<String, Object> row : rows) {
+                        String firstName = String.valueOf(row.getOrDefault("firstName", ""));
+                        String lastName = String.valueOf(row.getOrDefault("lastName", ""));
+                        long count = toLong(row.get("appointmentCount"));
+                        sb.append("- ").append(firstName).append(" ").append(lastName)
+                                .append(" | Appointments: ").append(count)
+                                .append("\n");
+                    }
+
+                    JTextArea textArea = new JTextArea(sb.toString(), 14, 50);
+                    textArea.setEditable(false);
+                    JOptionPane.showMessageDialog(this, new JScrollPane(textArea),
+                            "Busiest Advisors", JOptionPane.INFORMATION_MESSAGE);
+                });
+            } catch (Exception e) {
+                String errorMsg = e.getMessage() != null ? e.getMessage() : e.toString();
+                SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
+                        "Error loading busiest advisors: " + errorMsg,
+                        "Error", JOptionPane.ERROR_MESSAGE));
+            }
+        }).start();
+    }
+
+    private void showCourseEnrolmentStatsDialog() {
+        new Thread(() -> {
+            try {
+                List<Section> sections = ApiClient.getAllSections();
+                if (sections == null) {
+                    sections = new ArrayList<>();
+                }
+
+                java.util.Map<String, int[]> totalsByCourse = new java.util.LinkedHashMap<>();
+                for (Section section : sections) {
+                    String courseCode = (section.getCourse() != null && section.getCourse().getCourseCode() != null)
+                            ? section.getCourse().getCourseCode()
+                            : "N/A";
+                    int enrolled = section.getEnrolledCount() != null ? section.getEnrolledCount() : 0;
+                    int capacity = section.getCapacity() != null ? section.getCapacity() : 0;
+                    int[] totals = totalsByCourse.computeIfAbsent(courseCode, key -> new int[]{0, 0, 0});
+                    totals[0] += enrolled;
+                    totals[1] += capacity;
+                    totals[2] += 1;
+                }
+
+                List<java.util.Map.Entry<String, int[]>> rows = new ArrayList<>(totalsByCourse.entrySet());
+                rows.sort(Comparator.comparingInt((java.util.Map.Entry<String, int[]> e) -> e.getValue()[0]).reversed());
+
+                SwingUtilities.invokeLater(() -> {
+                    if (rows.isEmpty()) {
+                        JOptionPane.showMessageDialog(this,
+                                "No section data available.",
+                                "Course Enrolment Stats", JOptionPane.INFORMATION_MESSAGE);
+                        return;
+                    }
+
+                    StringBuilder sb = new StringBuilder("Course Enrolment Stats:\n\n");
+                    for (java.util.Map.Entry<String, int[]> row : rows) {
+                        int enrolled = row.getValue()[0];
+                        int capacity = row.getValue()[1];
+                        int sectionCount = row.getValue()[2];
+                        double utilization = capacity > 0 ? (enrolled * 100.0 / capacity) : 0.0;
+                        sb.append("- ").append(row.getKey())
+                                .append(" | Enrolled: ").append(enrolled)
+                                .append(" / ").append(capacity)
+                                .append(" | Sections: ").append(sectionCount)
+                                .append(" | Utilization: ").append(String.format(java.util.Locale.US, "%.1f", utilization)).append("%")
+                                .append("\n");
+                    }
+
+                    JTextArea textArea = new JTextArea(sb.toString(), 16, 60);
+                    textArea.setEditable(false);
+                    JOptionPane.showMessageDialog(this, new JScrollPane(textArea),
+                            "Course Enrolment Stats", JOptionPane.INFORMATION_MESSAGE);
+                });
+            } catch (Exception e) {
+                String errorMsg = e.getMessage() != null ? e.getMessage() : e.toString();
+                SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
+                        "Error loading enrolment stats: " + errorMsg,
+                        "Error", JOptionPane.ERROR_MESSAGE));
+            }
+        }).start();
+    }
+
+    private void showDashboardOverviewDialog() {
+        new Thread(() -> {
+            try {
+                Map<String, Double> counts = ApiClient.getAppointmentCounts();
+                List<Student> students = ApiClient.getReportStudents();
+                List<Faculty> faculty = ApiClient.getReportFaculty();
+                List<Course> courses = ApiClient.getAllCourses();
+
+                long totalAppointments = toLong(counts != null ? counts.get("totalAppointments") : null);
+                long activeAppointments = toLong(counts != null ? counts.get("activeAppointments") : null);
+                long cancelledAppointments = toLong(counts != null ? counts.get("cancelledAppointments") : null);
+
+                int studentCount = students != null ? students.size() : 0;
+                int facultyCount = faculty != null ? faculty.size() : 0;
+                int courseCount = courses != null ? courses.size() : 0;
+
+                StringBuilder sb = new StringBuilder("Dashboard Overview:\n\n");
+                sb.append("Students: ").append(studentCount).append("\n");
+                sb.append("Faculty: ").append(facultyCount).append("\n");
+                sb.append("Courses: ").append(courseCount).append("\n\n");
+                sb.append("Appointments (Total): ").append(totalAppointments).append("\n");
+                sb.append("Appointments (Active): ").append(activeAppointments).append("\n");
+                sb.append("Appointments (Cancelled): ").append(cancelledAppointments).append("\n");
+
+                SwingUtilities.invokeLater(() -> {
+                    JTextArea textArea = new JTextArea(sb.toString(), 14, 48);
+                    textArea.setEditable(false);
+                    JOptionPane.showMessageDialog(this, new JScrollPane(textArea),
+                            "Dashboard Overview", JOptionPane.INFORMATION_MESSAGE);
+                });
+            } catch (Exception e) {
+                String errorMsg = e.getMessage() != null ? e.getMessage() : e.toString();
+                SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
+                        "Error loading dashboard overview: " + errorMsg,
+                        "Error", JOptionPane.ERROR_MESSAGE));
+            }
+        }).start();
+    }
+
+    private long toLong(Object value) {
+        if (value instanceof Number number) {
+            return number.longValue();
+        }
+        if (value == null) {
+            return 0L;
+        }
+        try {
+            return Long.parseLong(value.toString());
+        } catch (NumberFormatException e) {
+            return 0L;
         }
     }
 
