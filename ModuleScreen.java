@@ -8,6 +8,7 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
     private List<Course> allCourses;
     private List<Faculty> allFaculty;
     private List<Student> allStudents;
+    private List<Transcript> allTranscripts;
 
     public ModuleScreen(int idx) {
         this.moduleIdx = idx;
@@ -201,6 +202,8 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
                 card.setOnClickAction(this::showManageSectionsDialog);
             } else if (items[i][0].equals("Manage User Profiles")) {
                 card.setOnClickAction(this::showManageUserProfilesDialog);
+            } else if (items[i][0].equals("Update Transcript Records")) {
+                card.setOnClickAction(this::showManageTranscriptsDialog);
             }
 
             p.add(card, gbc);
@@ -942,6 +945,303 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
                 String errorMsg = e.getMessage() != null ? e.getMessage() : e.toString();
                 SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
                         "Error deleting student: " + errorMsg,
+                        "Error", JOptionPane.ERROR_MESSAGE));
+            }
+        }).start();
+    }
+
+    private void fetchTranscriptsThen(Runnable onSuccess) {
+        new Thread(() -> {
+            try {
+                List<Transcript> transcripts = ApiClient.getAllTranscripts();
+                if (transcripts == null) {
+                    transcripts = new java.util.ArrayList<>();
+                }
+                allTranscripts = transcripts;
+                if (onSuccess != null) {
+                    SwingUtilities.invokeLater(onSuccess);
+                }
+            } catch (Exception e) {
+                String errorMsg = e.getMessage() != null ? e.getMessage() : e.toString();
+                SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
+                        "Error: " + errorMsg,
+                        "Error", JOptionPane.ERROR_MESSAGE));
+            }
+        }).start();
+    }
+
+    private void showManageTranscriptsDialog() {
+        String[] options = {"View Transcripts", "Add Transcript", "Edit Transcript", "Delete Transcript", "Cancel"};
+        int choice = JOptionPane.showOptionDialog(this,
+                "Choose a transcript action:",
+                "Manage Transcript Records",
+                JOptionPane.DEFAULT_OPTION,
+                JOptionPane.PLAIN_MESSAGE,
+                null,
+                options,
+                options[0]);
+
+        switch (choice) {
+            case 0 -> fetchTranscriptsThen(this::showTranscriptListDialog);
+            case 1 -> fetchCoursesThen(() -> fetchStudentsThen(this::showAddTranscriptDialog));
+            case 2 -> fetchTranscriptsThen(() -> fetchCoursesThen(() -> fetchStudentsThen(this::showEditTranscriptDialog)));
+            case 3 -> fetchTranscriptsThen(this::showDeleteTranscriptDialog);
+            default -> { }
+        }
+    }
+
+    private void showTranscriptListDialog() {
+        if (allTranscripts == null || allTranscripts.isEmpty()) {
+            JOptionPane.showMessageDialog(this,
+                    "No transcript records found.",
+                    "Info", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+
+        StringBuilder sb = new StringBuilder("Transcript Records:\n\n");
+        for (Transcript t : allTranscripts) {
+            String studentLabel = t.getStudent() != null ? t.getStudent().toString() : "Unknown Student";
+            String courseLabel = t.getCourse() != null ? t.getCourse().toString() : "Unknown Course";
+            sb.append("- ")
+                    .append(studentLabel)
+                    .append(" | ")
+                    .append(courseLabel)
+                    .append(" | Grade: ")
+                    .append(t.getGrade() != null ? t.getGrade() : "N/A")
+                    .append(" | Term: ")
+                    .append(t.getTerm() != null ? t.getTerm() : "N/A")
+                    .append("\n");
+        }
+
+        JTextArea textArea = new JTextArea(sb.toString(), 16, 60);
+        textArea.setEditable(false);
+        textArea.setLineWrap(true);
+        textArea.setWrapStyleWord(true);
+        JOptionPane.showMessageDialog(this, new JScrollPane(textArea),
+                "Transcripts", JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    private void showAddTranscriptDialog() {
+        if (allStudents == null || allStudents.isEmpty()) {
+            JOptionPane.showMessageDialog(this,
+                    "No students available. Add students first.",
+                    "Info", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+        if (allCourses == null || allCourses.isEmpty()) {
+            JOptionPane.showMessageDialog(this,
+                    "No courses available. Add courses first.",
+                    "Info", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+
+        JPanel panel = new JPanel(new GridLayout(4, 2, 8, 8));
+        panel.setBorder(new EmptyBorder(16, 16, 16, 16));
+        JComboBox<Student> studentCombo = new JComboBox<>(allStudents.toArray(new Student[0]));
+        JComboBox<Course> courseCombo = new JComboBox<>(allCourses.toArray(new Course[0]));
+        JTextField gradeField = new JTextField();
+        JTextField termField = new JTextField();
+
+        panel.add(new JLabel("Student:")); panel.add(studentCombo);
+        panel.add(new JLabel("Course:")); panel.add(courseCombo);
+        panel.add(new JLabel("Grade:")); panel.add(gradeField);
+        panel.add(new JLabel("Term:")); panel.add(termField);
+
+        int result = JOptionPane.showConfirmDialog(this, panel, "Add Transcript",
+                JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+        if (result != JOptionPane.OK_OPTION) return;
+
+        Student selectedStudent = (Student) studentCombo.getSelectedItem();
+        Course selectedCourse = (Course) courseCombo.getSelectedItem();
+        String gradeStr = gradeField.getText().trim();
+        String term = termField.getText().trim();
+
+        if (selectedStudent == null || selectedCourse == null || gradeStr.isEmpty() || term.isEmpty()) {
+            JOptionPane.showMessageDialog(this,
+                    "Please fill in all fields.",
+                    "Validation Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        try {
+            Double grade = Double.parseDouble(gradeStr);
+            Transcript transcript = new Transcript();
+            transcript.setStudent(selectedStudent);
+            transcript.setCourse(selectedCourse);
+            transcript.setGrade(grade);
+            transcript.setTerm(term);
+
+            new Thread(() -> {
+                try {
+                    ApiClient.addTranscript(transcript);
+                    SwingUtilities.invokeLater(() -> {
+                        JOptionPane.showMessageDialog(this,
+                                "Transcript added successfully.",
+                                "Success", JOptionPane.INFORMATION_MESSAGE);
+                        fetchTranscriptsThen(null);
+                    });
+                } catch (Exception e) {
+                    String errorMsg = e.getMessage() != null ? e.getMessage() : e.toString();
+                    SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
+                            "Error adding transcript: " + errorMsg,
+                            "Error", JOptionPane.ERROR_MESSAGE));
+                }
+            }).start();
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this,
+                    "Grade must be a number.",
+                    "Validation Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void showEditTranscriptDialog() {
+        if (allTranscripts == null || allTranscripts.isEmpty()) {
+            JOptionPane.showMessageDialog(this,
+                    "No transcripts available to edit.",
+                    "Info", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+
+        String[] options = new String[allTranscripts.size()];
+        for (int i = 0; i < allTranscripts.size(); i++) {
+            options[i] = allTranscripts.get(i).toString();
+        }
+
+        int selectedIndex = JOptionPane.showOptionDialog(this,
+                "Select transcript to edit:",
+                "Edit Transcript",
+                JOptionPane.DEFAULT_OPTION,
+                JOptionPane.PLAIN_MESSAGE,
+                null,
+                options,
+                options[0]);
+
+        if (selectedIndex < 0) return;
+        Transcript selected = allTranscripts.get(selectedIndex);
+
+        JPanel panel = new JPanel(new GridLayout(4, 2, 8, 8));
+        panel.setBorder(new EmptyBorder(16, 16, 16, 16));
+        JComboBox<Student> studentCombo = new JComboBox<>(allStudents.toArray(new Student[0]));
+        JComboBox<Course> courseCombo = new JComboBox<>(allCourses.toArray(new Course[0]));
+        JTextField gradeField = new JTextField(selected.getGrade() != null ? String.valueOf(selected.getGrade()) : "");
+        JTextField termField = new JTextField(selected.getTerm() != null ? selected.getTerm() : "");
+
+        if (selected.getStudent() != null && selected.getStudent().getId() != null) {
+            for (int i = 0; i < studentCombo.getItemCount(); i++) {
+                Student s = studentCombo.getItemAt(i);
+                if (s != null && s.getId() != null && s.getId().equals(selected.getStudent().getId())) {
+                    studentCombo.setSelectedIndex(i);
+                    break;
+                }
+            }
+        }
+        if (selected.getCourse() != null && selected.getCourse().getId() != null) {
+            for (int i = 0; i < courseCombo.getItemCount(); i++) {
+                Course c = courseCombo.getItemAt(i);
+                if (c != null && c.getId() != null && c.getId().equals(selected.getCourse().getId())) {
+                    courseCombo.setSelectedIndex(i);
+                    break;
+                }
+            }
+        }
+
+        panel.add(new JLabel("Student:")); panel.add(studentCombo);
+        panel.add(new JLabel("Course:")); panel.add(courseCombo);
+        panel.add(new JLabel("Grade:")); panel.add(gradeField);
+        panel.add(new JLabel("Term:")); panel.add(termField);
+
+        int result = JOptionPane.showConfirmDialog(this, panel, "Edit Transcript",
+                JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+        if (result != JOptionPane.OK_OPTION) return;
+
+        Student updatedStudent = (Student) studentCombo.getSelectedItem();
+        Course updatedCourse = (Course) courseCombo.getSelectedItem();
+        String gradeStr = gradeField.getText().trim();
+        String term = termField.getText().trim();
+
+        if (updatedStudent == null || updatedCourse == null || gradeStr.isEmpty() || term.isEmpty()) {
+            JOptionPane.showMessageDialog(this,
+                    "Please fill in all fields.",
+                    "Validation Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        try {
+            Double grade = Double.parseDouble(gradeStr);
+            Transcript updated = new Transcript();
+            updated.setStudent(updatedStudent);
+            updated.setCourse(updatedCourse);
+            updated.setGrade(grade);
+            updated.setTerm(term);
+
+            new Thread(() -> {
+                try {
+                    ApiClient.editTranscript(selected.getId(), updated);
+                    SwingUtilities.invokeLater(() -> {
+                        JOptionPane.showMessageDialog(this,
+                                "Transcript updated successfully.",
+                                "Success", JOptionPane.INFORMATION_MESSAGE);
+                        fetchTranscriptsThen(null);
+                    });
+                } catch (Exception e) {
+                    String errorMsg = e.getMessage() != null ? e.getMessage() : e.toString();
+                    SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
+                            "Error editing transcript: " + errorMsg,
+                            "Error", JOptionPane.ERROR_MESSAGE));
+                }
+            }).start();
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this,
+                    "Grade must be a number.",
+                    "Validation Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void showDeleteTranscriptDialog() {
+        if (allTranscripts == null || allTranscripts.isEmpty()) {
+            JOptionPane.showMessageDialog(this,
+                    "No transcripts available to delete.",
+                    "Info", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+
+        String[] options = new String[allTranscripts.size()];
+        for (int i = 0; i < allTranscripts.size(); i++) {
+            options[i] = allTranscripts.get(i).toString();
+        }
+
+        int selectedIndex = JOptionPane.showOptionDialog(this,
+                "Select transcript to delete:",
+                "Delete Transcript",
+                JOptionPane.DEFAULT_OPTION,
+                JOptionPane.WARNING_MESSAGE,
+                null,
+                options,
+                options[0]);
+
+        if (selectedIndex < 0) return;
+        Transcript selected = allTranscripts.get(selectedIndex);
+
+        int confirm = JOptionPane.showConfirmDialog(this,
+                "Delete transcript record?",
+                "Confirm Delete",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.WARNING_MESSAGE);
+        if (confirm != JOptionPane.YES_OPTION) return;
+
+        new Thread(() -> {
+            try {
+                ApiClient.deleteTranscript(selected.getId());
+                SwingUtilities.invokeLater(() -> {
+                    JOptionPane.showMessageDialog(this,
+                            "Transcript deleted successfully.",
+                            "Success", JOptionPane.INFORMATION_MESSAGE);
+                    fetchTranscriptsThen(null);
+                });
+            } catch (Exception e) {
+                String errorMsg = e.getMessage() != null ? e.getMessage() : e.toString();
+                SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
+                        "Error deleting transcript: " + errorMsg,
                         "Error", JOptionPane.ERROR_MESSAGE));
             }
         }).start();
