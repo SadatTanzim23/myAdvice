@@ -6,9 +6,10 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.List;
+import java.util.Map;
 
 public class ApiClient {
-    private static final String BASE_URL = "http://localhost:8081";
+    private static final String BASE_URL = "http://localhost:8080";
     private static final HttpClient client = HttpClient.newHttpClient();
     private static final Gson gson = new Gson();
 
@@ -90,7 +91,7 @@ public class ApiClient {
         return gson.fromJson(response.body(), new TypeToken<List<Course>>(){}.getType());
     }
 
-    public static Course addCoursePrerequisite(Long courseId, Long prerequisiteId) throws Exception {
+    public static void addCoursePrerequisite(Long courseId, Long prerequisiteId) throws Exception {
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(BASE_URL + "/admin/courses/" + courseId + "/prerequisites/add/" + prerequisiteId))
                 .POST(HttpRequest.BodyPublishers.noBody())
@@ -100,11 +101,9 @@ public class ApiClient {
         if (response.statusCode() != 200) {
             throw new Exception("Failed to add prerequisite: " + response.body());
         }
-        return gson.fromJson(response.body(), Course.class);
-
     }
 
-    public static Course removeCoursePrerequisite(Long courseId, Long prerequisiteId) throws Exception {
+    public static void removeCoursePrerequisite(Long courseId, Long prerequisiteId) throws Exception {
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(BASE_URL + "/admin/courses/" + courseId + "/prerequisites/remove/" + prerequisiteId))
                 .DELETE()
@@ -113,7 +112,6 @@ public class ApiClient {
         if (response.statusCode() != 200) {
             throw new Exception("Failed to remove prerequisite: " + response.body());
         }
-        return gson.fromJson(response.body(), Course.class);
     }
 
     public static List<Faculty> getAllFaculty() throws Exception {
@@ -339,6 +337,72 @@ public class ApiClient {
             throw new Exception("Failed to edit section: " + response.body());
         }
         return gson.fromJson(response.body(), Section.class);
+    }
+
+    // Report API methods
+    public static List<Student> getReportStudents() throws Exception {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(BASE_URL + "/reports/students"))
+                .GET()
+                .build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() != 200) {
+            throw new Exception("Failed to load report students: " + response.body());
+        }
+        return gson.fromJson(response.body(), new TypeToken<List<Student>>(){}.getType());
+    }
+
+    public static List<Faculty> getReportFaculty() throws Exception {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(BASE_URL + "/reports/faculty"))
+                .GET()
+                .build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() != 200) {
+            throw new Exception("Failed to load report faculty: " + response.body());
+        }
+        return gson.fromJson(response.body(), new TypeToken<List<Faculty>>(){}.getType());
+    }
+
+    public static List<Map<String, Object>> getMostActiveStudents() throws Exception {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(BASE_URL + "/reports/students/most-appointments"))
+                .GET()
+                .build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() != 200) {
+            throw new Exception("Failed to load most active students: " + response.body());
+        }
+        return gson.fromJson(response.body(), new TypeToken<List<Map<String, Object>>>(){}.getType());
+    }
+
+    public static List<Map<String, Object>> getBusiestAdvisors() throws Exception {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(BASE_URL + "/reports/faculty/most-appointments"))
+                .GET()
+                .build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() != 200) {
+            throw new Exception("Failed to load busiest advisors: " + response.body());
+        }
+        return gson.fromJson(response.body(), new TypeToken<List<Map<String, Object>>>(){}.getType());
+    }
+
+    public static Map<String, Double> getAppointmentCounts() throws Exception {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(BASE_URL + "/reports/appointments/counts"))
+                .GET()
+                .build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() != 200) {
+            throw new Exception("Failed to load appointment counts: " + response.body());
+        }
+        return gson.fromJson(response.body(), new TypeToken<Map<String, Double>>(){}.getType());
     }
 }
 
