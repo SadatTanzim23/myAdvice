@@ -23,15 +23,18 @@ public class ActionCard extends JPanel {//Each module showing the action availab
         add(t, BorderLayout.NORTH);
         add(d, BorderLayout.CENTER);
         
-        // Add click listener
-        addMouseListener(new MouseAdapter() {
+        // Handle clicks on both the panel and its child labels.
+        MouseAdapter clickHandler = new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
                 if (onClickAction != null) {
                     onClickAction.run();
                 }
             }
-        });
+        };
+        addMouseListener(clickHandler);
+        t.addMouseListener(clickHandler);
+        d.addMouseListener(clickHandler);
     }
     
     public void setOnClickAction(Runnable action) {
