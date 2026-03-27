@@ -73,6 +73,10 @@ public class AdminService {
         if(course.getPrerequisites().contains(prerequisite)){
             throw new RuntimeException("Prerequisite already exists");
         }
+        // Prevent circular prerequisites (direct or indirect)
+        if (wouldCreatePrerequisiteCycle(course, prerequisite)) {
+            throw new RuntimeException("Cannot add prerequisite because it creates a circular dependency");
+        }
         // Add the prerequisite to the course's prerequisites list
         course.getPrerequisites().add(prerequisite);
         // Save the updated course back to the database
@@ -99,6 +103,32 @@ public class AdminService {
         Course course = courseRepository.findById(courseId).orElseThrow(() -> new RuntimeException("Course not found"));
         // Return the list of prerequisites for the course
         return course.getPrerequisites();
+    }
+
+    private boolean wouldCreatePrerequisiteCycle(Course course, Course prerequisiteCandidate) {
+        return containsCourseInPrerequisiteChain(prerequisiteCandidate, course.getId(), new java.util.HashSet<>());
+    }
+
+    private boolean containsCourseInPrerequisiteChain(Course current, Long targetCourseId, java.util.Set<Long> visited) {
+        if (current == null || current.getId() == null || targetCourseId == null) {
+            return false;
+        }
+        if (current.getId().equals(targetCourseId)) {
+            return true;
+        }
+        if (!visited.add(current.getId())) {
+            return false;
+        }
+        List<Course> next = current.getPrerequisites();
+        if (next == null || next.isEmpty()) {
+            return false;
+        }
+        for (Course child : next) {
+            if (containsCourseInPrerequisiteChain(child, targetCourseId, visited)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public Section addSection(Course course, Faculty faculty, String sectionNumber, Integer capacity, Integer enrolledCount, String instructorName, String dayOfWeek){
