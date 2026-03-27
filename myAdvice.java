@@ -67,7 +67,6 @@ public class myAdvice {
             {"Create / Edit Timetable",      "Set up course sections & schedules"        },
             {"Manage User Profiles",         "Update student, faculty & staff info"      },
             {"Update Transcript Records",    "Modify grade and enrollment data"          },
-            {"System Settings",              "Configure application parameters"          },
         },
         { //Reports & Dashboards
             {"Student List",                 "Browse and filter all students"            },
