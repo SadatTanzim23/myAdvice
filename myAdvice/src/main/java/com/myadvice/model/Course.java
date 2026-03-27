@@ -1,5 +1,6 @@
 package com.myadvice.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 
 import java.util.ArrayList;
@@ -26,6 +27,7 @@ public class Course {
 
 
     @ManyToMany
+    @JsonIgnore
     @JoinTable(
             name = "course_prerequisites",
             joinColumns = @JoinColumn(name="course_id"),
