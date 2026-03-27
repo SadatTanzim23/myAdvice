@@ -224,6 +224,69 @@ public class ApiClient {
             throw new Exception("Failed to delete student: " + response.body());
         }
     }
+// Transcript API methods
+    public static List<Transcript> getAllTranscripts() throws Exception {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(BASE_URL + "/admin/transcripts"))
+                .GET()
+                .build();
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() != 200) {
+            throw new Exception("Failed to load transcripts: " + response.body());
+        }
+        return gson.fromJson(response.body(), new TypeToken<List<Transcript>>(){}.getType());
+    }
+
+    public static List<Transcript> getTranscriptsByStudent(Long studentId) throws Exception {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(BASE_URL + "/admin/transcripts/student/" + studentId))
+                .GET()
+                .build();
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() != 200) {
+            throw new Exception("Failed to load transcripts by student: " + response.body());
+        }
+        return gson.fromJson(response.body(), new TypeToken<List<Transcript>>(){}.getType());
+    }
+
+    public static Transcript addTranscript(Transcript transcript) throws Exception {
+        String json = gson.toJson(transcript);
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(BASE_URL + "/admin/transcripts/add"))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(json))
+                .build();
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() != 200 && response.statusCode() != 201) {
+            throw new Exception("Failed to add transcript: " + response.body());
+        }
+        return gson.fromJson(response.body(), Transcript.class);
+    }
+
+    public static Transcript editTranscript(Long transcriptId, Transcript transcript) throws Exception {
+        String json = gson.toJson(transcript);
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(BASE_URL + "/admin/transcripts/edit/" + transcriptId))
+                .header("Content-Type", "application/json")
+                .method("PUT", HttpRequest.BodyPublishers.ofString(json))
+                .build();
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() != 200) {
+            throw new Exception("Failed to edit transcript: " + response.body());
+        }
+        return gson.fromJson(response.body(), Transcript.class);
+    }
+
+    public static void deleteTranscript(Long transcriptId) throws Exception {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(BASE_URL + "/admin/transcripts/delete/" + transcriptId))
+                .DELETE()
+                .build();
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() != 200) {
+            throw new Exception("Failed to delete transcript: " + response.body());
+        }
+    }
 
     // Section API methods
     public static List<Section> getAllSections() throws Exception {
