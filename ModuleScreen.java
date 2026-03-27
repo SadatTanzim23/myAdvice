@@ -1870,7 +1870,9 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
         JTextField capacityField = new JTextField();
         JTextField enrolledField = new JTextField("0");
         JTextField instructorField = new JTextField();
-        JComboBox<String> dayCombo = new JComboBox<>(new String[]{"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"});
+        JList<String> dayList = new JList<>(new String[]{"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"});
+        dayList.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+        JScrollPane dayScrollPane = new JScrollPane(dayList);
 
         Dimension inputSize = new Dimension(220, 26);
         courseCombo.setPreferredSize(inputSize);
@@ -1879,7 +1881,7 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
         capacityField.setPreferredSize(inputSize);
         enrolledField.setPreferredSize(inputSize);
         instructorField.setPreferredSize(inputSize);
-        dayCombo.setPreferredSize(inputSize);
+        dayScrollPane.setPreferredSize(new Dimension(220, 90));
 
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(6, 6, 6, 6);
@@ -1904,8 +1906,8 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
         gbc.gridx = 0; gbc.gridy = 5; panel.add(new JLabel("Instructor Name:"), gbc);
         gbc.gridx = 1; panel.add(instructorField, gbc);
 
-        gbc.gridx = 0; gbc.gridy = 6; panel.add(new JLabel("Day of Week:"), gbc);
-        gbc.gridx = 1; panel.add(dayCombo, gbc);
+        gbc.gridx = 0; gbc.gridy = 6; panel.add(new JLabel("Day(s):"), gbc);
+        gbc.gridx = 1; panel.add(dayScrollPane, gbc);
 
         // Confirmation button for adding the section
         int result = JOptionPane.showConfirmDialog(this, panel, "Add Section",
@@ -1920,13 +1922,14 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
         String capacityStr = capacityField.getText().trim();
         String enrolledStr = enrolledField.getText().trim();
         String instructorName = instructorField.getText().trim();
-        String dayOfWeek = String.valueOf(dayCombo.getSelectedItem());
+        List<String> selectedDays = dayList.getSelectedValuesList();
+        String dayOfWeek = String.join(", ", selectedDays);
 
         if (selectedCourse == null || selectedFaculty == null || sectionNumber.isEmpty()
                 || capacityStr.isEmpty() || enrolledStr.isEmpty()
-                || instructorName.isEmpty() || dayOfWeek.isEmpty()) {
+                || instructorName.isEmpty() || selectedDays.isEmpty()) {
             JOptionPane.showMessageDialog(this,
-                    "Please fill in all fields.",
+                    "Please fill in all fields and select at least one day.",
                     "Validation Error", JOptionPane.ERROR_MESSAGE);
             return;
         }
@@ -2042,7 +2045,9 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
         JTextField capacityField = new JTextField(selectedSection.getCapacity() != null ? String.valueOf(selectedSection.getCapacity()) : "");
         JTextField enrolledField = new JTextField(selectedSection.getEnrolledCount() != null ? String.valueOf(selectedSection.getEnrolledCount()) : "0");
         JTextField instructorField = new JTextField(selectedSection.getInstructorName() != null ? selectedSection.getInstructorName() : "");
-        JComboBox<String> dayCombo = new JComboBox<>(new String[]{"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"});
+        JList<String> dayList = new JList<>(new String[]{"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"});
+        dayList.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+        JScrollPane dayScrollPane = new JScrollPane(dayList);
 
         // Get current course selected in the combobox
         if (selectedSection.getCourse() != null && selectedSection.getCourse().getId() != null) {
@@ -2054,8 +2059,24 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
                 }
             }
         }
-        if (selectedSection.getDayOfWeek() != null) {
-            dayCombo.setSelectedItem(selectedSection.getDayOfWeek());
+        if (selectedSection.getDayOfWeek() != null && !selectedSection.getDayOfWeek().isBlank()) {
+            String[] existingDays = selectedSection.getDayOfWeek().split(",");
+            java.util.Set<String> existingDaySet = new java.util.HashSet<>();
+            for (String d : existingDays) {
+                existingDaySet.add(d.trim());
+            }
+            java.util.List<Integer> indices = new java.util.ArrayList<>();
+            ListModel<String> model = dayList.getModel();
+            for (int i = 0; i < model.getSize(); i++) {
+                if (existingDaySet.contains(model.getElementAt(i))) {
+                    indices.add(i);
+                }
+            }
+            int[] selectedIndices = new int[indices.size()];
+            for (int i = 0; i < indices.size(); i++) {
+                selectedIndices[i] = indices.get(i);
+            }
+            dayList.setSelectedIndices(selectedIndices);
         }
 
         // Set input field dimensions
@@ -2066,7 +2087,7 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
         capacityField.setPreferredSize(inputSize);
         enrolledField.setPreferredSize(inputSize);
         instructorField.setPreferredSize(inputSize);
-        dayCombo.setPreferredSize(inputSize);
+        dayScrollPane.setPreferredSize(new Dimension(220, 90));
 
         if (selectedSection.getFaculty() != null && selectedSection.getFaculty().getId() != null) {
             for (int i = 0; i < facultyCombo.getItemCount(); i++) {
@@ -2096,8 +2117,8 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
         gbc.gridx = 1; panel.add(enrolledField, gbc);
         gbc.gridx = 0; gbc.gridy = 5; panel.add(new JLabel("Instructor Name:"), gbc);
         gbc.gridx = 1; panel.add(instructorField, gbc);
-        gbc.gridx = 0; gbc.gridy = 6; panel.add(new JLabel("Day of Week:"), gbc);
-        gbc.gridx = 1; panel.add(dayCombo, gbc);
+        gbc.gridx = 0; gbc.gridy = 6; panel.add(new JLabel("Day(s):"), gbc);
+        gbc.gridx = 1; panel.add(dayScrollPane, gbc);
 
         // Confirmation button for editing the section
         int result = JOptionPane.showConfirmDialog(this, panel, "Confirm Edit",
@@ -2111,13 +2132,14 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
         String capacityStr = capacityField.getText().trim();
         String enrolledStr = enrolledField.getText().trim();
         String instructorName = instructorField.getText().trim();
-        String dayOfWeek = String.valueOf(dayCombo.getSelectedItem());
+        List<String> selectedDays = dayList.getSelectedValuesList();
+        String dayOfWeek = String.join(", ", selectedDays);
 
         // Handle validation/empty errors
         if (selectedCourse == null || selectedFaculty == null || sectionNumber.isEmpty()
-                || capacityStr.isEmpty() || enrolledStr.isEmpty() || instructorName.isEmpty()) {
+                || capacityStr.isEmpty() || enrolledStr.isEmpty() || instructorName.isEmpty() || selectedDays.isEmpty()) {
             JOptionPane.showMessageDialog(this,
-                    "Please fill in all fields.",
+                    "Please fill in all fields and select at least one day.",
                     "Validation Error", JOptionPane.ERROR_MESSAGE);
             return;
         }
