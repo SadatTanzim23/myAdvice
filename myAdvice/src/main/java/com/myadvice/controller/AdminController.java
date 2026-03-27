@@ -48,14 +48,14 @@ public class AdminController {
 
     // Endpoint to add a prerequisite to a course
     @PostMapping("/courses/{courseId}/prerequisites/add/{prerequisiteId}")
-    public Course addPrerequisite(@PathVariable("courseId") Long courseId, @PathVariable("prerequisiteId") Long prerequisiteId){
-        return adminService.addPrerequisite(courseId, prerequisiteId);
+    public void addPrerequisite(@PathVariable("courseId") Long courseId, @PathVariable("prerequisiteId") Long prerequisiteId){
+        adminService.addPrerequisite(courseId, prerequisiteId);
     }
 
     // Endpoint to remove a prerequisite from a course
     @DeleteMapping("/courses/{courseId}/prerequisites/remove/{prerequisiteId}")
-    public Course removePrerequisite(@PathVariable("courseId") Long courseId, @PathVariable("prerequisiteId") Long prerequisiteId){
-        return adminService.removePrerequisite(courseId, prerequisiteId);
+    public void removePrerequisite(@PathVariable("courseId") Long courseId, @PathVariable("prerequisiteId") Long prerequisiteId){
+        adminService.removePrerequisite(courseId, prerequisiteId);
     }
 
     // Endpoint to view all prerequisites for a course
