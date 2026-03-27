@@ -174,13 +174,31 @@ public class AdminService {
     }
 
     public List<Schedule> viewScheduleByCourseId(String courseCode){
-        return scheduleRepository.findByCourseCode(courseCode);
+        return scheduleRepository.findByCourseCourseCode(courseCode);
     }
 
+    // Transcript management methods
     public Transcript addTranscript(Student student, Course course, Double grade, String term){
-        Transcript transcript = new Transcript(student, course, grade, term);
-        transcriptRepository.save(transcript);
-        return transcript;
+        // Input validation
+        if (student == null || student.getId() == null) {
+            throw new RuntimeException("Student is required");
+        }
+        if (course == null || course.getId() == null) {
+            throw new RuntimeException("Course is required");
+        }
+        if (grade == null || term == null || term.isBlank()) {
+            throw new RuntimeException("Grade and term are required");
+        }
+
+        // Find the student and course by ID
+        Student managedStudent = studentRepository.findById(student.getId())
+                .orElseThrow(() -> new RuntimeException("Student not found"));
+        Course managedCourse = courseRepository.findById(course.getId())
+                .orElseThrow(() -> new RuntimeException("Course not found"));
+
+        // Create and save the new transcript
+        Transcript transcript = new Transcript(managedStudent, managedCourse, grade, term);
+        return transcriptRepository.save(transcript);
     }
 
     public void removeTranscript(Long id){
@@ -189,9 +207,25 @@ public class AdminService {
     }
 
     public Transcript editTranscript(Long id, Transcript updatedTranscript){
+       // Find the transcript by ID
         Transcript transcript = transcriptRepository.findById(id).orElseThrow(() -> new RuntimeException("Transcript not found"));
-        transcript.setStudent(updatedTranscript.getStudent());
-        transcript.setCourse(updatedTranscript.getCourse());
+
+        if (updatedTranscript.getStudent() == null || updatedTranscript.getStudent().getId() == null) {
+            throw new RuntimeException("Student is required");
+        }
+        if (updatedTranscript.getCourse() == null || updatedTranscript.getCourse().getId() == null) {
+            throw new RuntimeException("Course is required");
+        }
+
+        // Find the student and course by ID
+        Student managedStudent = studentRepository.findById(updatedTranscript.getStudent().getId())
+                .orElseThrow(() -> new RuntimeException("Student not found"));
+        Course managedCourse = courseRepository.findById(updatedTranscript.getCourse().getId())
+                .orElseThrow(() -> new RuntimeException("Course not found"));
+
+        // Update the transcript details
+        transcript.setStudent(managedStudent);
+        transcript.setCourse(managedCourse);
         transcript.setGrade(updatedTranscript.getGrade());
         transcript.setTerm(updatedTranscript.getTerm());
         return transcriptRepository.save(transcript);
@@ -199,6 +233,10 @@ public class AdminService {
 
     public List<Transcript> viewTranscript(Long studentId){
         return transcriptRepository.findByStudentId(studentId);
+    }
+
+    public List<Transcript> viewAllTranscripts(){
+        return transcriptRepository.findAll();
     }
 
     public Student addStudent(String firstName, String lastName, String email, String password){
