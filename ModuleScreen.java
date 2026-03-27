@@ -805,8 +805,72 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
             return;
         }
 
-        StringBuilder sb = new StringBuilder("Student List:\n\n");
+        String[] options = {"Search by Name", "View All", "Cancel"};
+        int choice = JOptionPane.showOptionDialog(
+                this,
+                "Choose how to view students:",
+                "Student List",
+                JOptionPane.DEFAULT_OPTION,
+                JOptionPane.PLAIN_MESSAGE,
+                null,
+                options,
+                options[0]
+        );
+
+        if (choice == 1) {
+            showStudentResultsDialog(allStudents, "Students");
+            return;
+        }
+
+        if (choice != 0) {
+            return;
+        }
+
+        String query = JOptionPane.showInputDialog(
+                this,
+                "Enter student name to search:",
+                "Student Search",
+                JOptionPane.PLAIN_MESSAGE
+        );
+
+        if (query == null) {
+            return;
+        }
+
+        String normalizedQuery = query.trim().toLowerCase();
+        if (normalizedQuery.isEmpty()) {
+            JOptionPane.showMessageDialog(this,
+                    "Please enter a full first name, last name, or full name.",
+                    "Search Results", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+        List<Student> filteredStudents = new ArrayList<>();
         for (Student s : allStudents) {
+            String firstName = s.getFirstName() != null ? s.getFirstName().trim().toLowerCase() : "";
+            String lastName = s.getLastName() != null ? s.getLastName().trim().toLowerCase() : "";
+            String fullName = (firstName + " " + lastName).trim();
+
+            // Exact match only: full name, first name, or last name.
+            if (fullName.equals(normalizedQuery)
+                    || firstName.equals(normalizedQuery)
+                    || lastName.equals(normalizedQuery)) {
+                filteredStudents.add(s);
+            }
+        }
+
+        if (filteredStudents.isEmpty()) {
+            JOptionPane.showMessageDialog(this,
+                    "No students matched your search.",
+                    "Search Results", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+
+        showStudentResultsDialog(filteredStudents, "Search Results");
+    }
+
+    private void showStudentResultsDialog(List<Student> students, String title) {
+        StringBuilder sb = new StringBuilder("Student List:\n\n");
+        for (Student s : students) {
             sb.append("- ")
                     .append(s.getFirstName()).append(" ").append(s.getLastName())
                     .append(" | ").append(s.getStudentNumber())
@@ -819,7 +883,7 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
         JTextArea textArea = new JTextArea(sb.toString(), 16, 55);
         textArea.setEditable(false);
         JOptionPane.showMessageDialog(this, new JScrollPane(textArea),
-                "Students", JOptionPane.INFORMATION_MESSAGE);
+                title, JOptionPane.INFORMATION_MESSAGE);
     }
 
     private void showAddStudentDialog() {
