@@ -4,6 +4,7 @@ import com.myadvice.model.Course;
 import com.myadvice.model.Faculty;
 import com.myadvice.model.Section;
 import com.myadvice.model.Student;
+import com.myadvice.model.Transcript;
 import com.myadvice.service.AdminService;
 import org.springframework.http.HttpStatus;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -129,6 +130,44 @@ public class AdminController {
     public void deleteStudent(@PathVariable("id") Long id){
         try {
             adminService.removeStudent(id);
+        } catch (RuntimeException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage(), e);
+        }
+    }
+
+    // Transcript management endpoints
+    @GetMapping("/transcripts")
+    public List<Transcript> viewAllTranscripts(){
+        return adminService.viewAllTranscripts();
+    }
+
+    @GetMapping("/transcripts/student/{studentId}")
+    public List<Transcript> viewTranscriptByStudent(@PathVariable("studentId") Long studentId){
+        return adminService.viewTranscript(studentId);
+    }
+
+    @PostMapping("/transcripts/add")
+    public Transcript addTranscript(@RequestBody Transcript transcript){
+        try {
+            return adminService.addTranscript(transcript.getStudent(), transcript.getCourse(), transcript.getGrade(), transcript.getTerm());
+        } catch (RuntimeException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage(), e);
+        }
+    }
+
+    @PutMapping("/transcripts/edit/{id}")
+    public Transcript editTranscript(@PathVariable("id") Long id, @RequestBody Transcript transcript){
+        try {
+            return adminService.editTranscript(id, transcript);
+        } catch (RuntimeException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage(), e);
+        }
+    }
+
+    @DeleteMapping("/transcripts/delete/{id}")
+    public void deleteTranscript(@PathVariable("id") Long id){
+        try {
+            adminService.removeTranscript(id);
         } catch (RuntimeException e) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage(), e);
         }
