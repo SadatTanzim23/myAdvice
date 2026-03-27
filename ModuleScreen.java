@@ -780,7 +780,7 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
     }
 
     private void showManageStudentProfilesDialog() {
-        String[] options = {"View Students", "Add Student", "Edit Student", "Delete Student", "Cancel"};
+        String[] options = {"Add Student", "Edit Student", "Delete Student", "Cancel"};
         int choice = JOptionPane.showOptionDialog(this,
                 "Choose a student action:",
                 "Manage Students",
@@ -791,10 +791,9 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
                 options[0]);
 
         switch (choice) {
-            case 0 -> fetchStudentsThen(this::showStudentListDialog);
-            case 1 -> showAddStudentDialog();
-            case 2 -> fetchStudentsThen(this::showEditStudentDialog);
-            case 3 -> fetchStudentsThen(this::showDeleteStudentDialog);
+            case 0 -> showAddStudentDialog();
+            case 1 -> fetchStudentsThen(this::showEditStudentDialog);
+            case 2 -> fetchStudentsThen(this::showDeleteStudentDialog);
             default -> { }
         }
     }
@@ -831,14 +830,14 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
         JTextField lastNameField = new JTextField();
         JTextField emailField = new JTextField();
         JTextField studentNumberField = new JTextField();
-        JTextField facultyField = new JTextField();
+        JTextField departmentField = new JTextField();
         JTextField programField = new JTextField();
 
         panel.add(new JLabel("First Name:")); panel.add(firstNameField);
         panel.add(new JLabel("Last Name:")); panel.add(lastNameField);
         panel.add(new JLabel("Email:")); panel.add(emailField);
         panel.add(new JLabel("Student Number:")); panel.add(studentNumberField);
-        panel.add(new JLabel("Faculty:")); panel.add(facultyField);
+        panel.add(new JLabel("Department:")); panel.add(departmentField);
         panel.add(new JLabel("Program:")); panel.add(programField);
 
         int result = JOptionPane.showConfirmDialog(this, panel, "Add Student",
@@ -850,7 +849,7 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
         student.setLastName(lastNameField.getText().trim());
         student.setEmail(emailField.getText().trim());
         student.setStudentNumber(studentNumberField.getText().trim());
-        student.setFacultyName(facultyField.getText().trim());
+        student.setFacultyName(departmentField.getText().trim());
         student.setProgramName(programField.getText().trim());
 
         if (student.getFirstName().isEmpty() || student.getLastName().isEmpty() || student.getEmail().isEmpty()
@@ -909,14 +908,14 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
         JTextField lastNameField = new JTextField(selected.getLastName());
         JTextField emailField = new JTextField(selected.getEmail());
         JTextField studentNumberField = new JTextField(selected.getStudentNumber());
-        JTextField facultyField = new JTextField(selected.getFacultyName());
+        JTextField departmentField = new JTextField(selected.getFacultyName());
         JTextField programField = new JTextField(selected.getProgramName());
 
         panel.add(new JLabel("First Name:")); panel.add(firstNameField);
         panel.add(new JLabel("Last Name:")); panel.add(lastNameField);
         panel.add(new JLabel("Email:")); panel.add(emailField);
         panel.add(new JLabel("Student Number:")); panel.add(studentNumberField);
-        panel.add(new JLabel("Faculty:")); panel.add(facultyField);
+        panel.add(new JLabel("Department:")); panel.add(departmentField);
         panel.add(new JLabel("Program:")); panel.add(programField);
 
         int result = JOptionPane.showConfirmDialog(this, panel, "Edit Student",
@@ -928,7 +927,7 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
         updated.setLastName(lastNameField.getText().trim());
         updated.setEmail(emailField.getText().trim());
         updated.setStudentNumber(studentNumberField.getText().trim());
-        updated.setFacultyName(facultyField.getText().trim());
+        updated.setFacultyName(departmentField.getText().trim());
         updated.setProgramName(programField.getText().trim());
 
         if (updated.getFirstName().isEmpty() || updated.getLastName().isEmpty() || updated.getEmail().isEmpty()
