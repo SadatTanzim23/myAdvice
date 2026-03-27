@@ -615,7 +615,7 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
     }
 
     private void showManageFacultyProfilesDialog() {
-        String[] options = {"View Faculty", "Add Faculty", "Edit Faculty", "Delete Faculty", "Cancel"};
+        String[] options = {"Add Faculty", "Edit Faculty", "Delete Faculty", "Cancel"};
         int choice = JOptionPane.showOptionDialog(this,
                 "Choose a faculty action:",
                 "Manage Faculty",
@@ -626,10 +626,9 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
                 options[0]);
 
         switch (choice) {
-            case 0 -> fetchFacultyThen(this::showFacultyListDialog);
-            case 1 -> showAddFacultyDialog(null);
-            case 2 -> fetchFacultyThen(this::showEditFacultyDialog);
-            case 3 -> fetchFacultyThen(this::showDeleteFacultyDialog);
+            case 0 -> showAddFacultyDialog(null);
+            case 1 -> fetchFacultyThen(this::showEditFacultyDialog);
+            case 2 -> fetchFacultyThen(this::showDeleteFacultyDialog);
             default -> { }
         }
     }
