@@ -53,6 +53,13 @@ public class MainApp extends JFrame {
                     break;
                 }
             }
+        } else if (idx == 4) {
+            for (Component c : centerPanel.getComponents()) {
+                if (c instanceof ModuleScreen ms && ms.getModuleIdx() == 4) {
+                    ms.refreshReportsIfNeeded();
+                    break;
+                }
+            }
         }
         centerLayout.show(centerPanel, myAdvice.MODULE_META[idx][0]);
         southLayout .show(southPanel,  "BACK");
