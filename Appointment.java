@@ -3,7 +3,6 @@ public class Appointment {
     private Student student;
     private Faculty faculty;
     private String dateTime;
-    private String status;
 
     public Appointment() {}
 
@@ -39,12 +38,5 @@ public class Appointment {
         this.dateTime = dateTime;
     }
 
-    public String getStatus() {
-        return status;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
-    }
 }
 

@@ -25,7 +25,7 @@ public class BookingService {
     private FacultyRepository facultyRepository;
 
     //Creates new appointment between a student and faculty member
-    public Appointment bookAppointment(Long studentId, Long facultyId, LocalDateTime dateTime, String status) {
+    public Appointment bookAppointment(Long studentId, Long facultyId, LocalDateTime dateTime) {
         //Look up student by ID (error if not found)
         Student student = studentRepository.findById(studentId).orElseThrow(() -> new RuntimeException("Student not found"));
         //Look up faculty by ID (error if not found)
@@ -35,7 +35,7 @@ public class BookingService {
             throw new RuntimeException("Appointment already exists");
         }
         //Create new appointment, save it and return it
-        return  appointmentRepository.save(new Appointment(student, faculty, dateTime, status));
+        return  appointmentRepository.save(new Appointment(student, faculty, dateTime, "scheduled"));
 
     }
 

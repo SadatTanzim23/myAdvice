@@ -310,18 +310,16 @@ public class ApiClient {
     }
 
     // Booking API methods
-    public static Appointment bookAppointment(Long studentId, Long facultyId, String dateTime, String status) throws Exception {
-        String safeStatus = (status == null || status.isBlank()) ? "scheduled" : status.trim();
+    public static Appointment bookAppointment(Long studentId, Long facultyId, String dateTime) throws Exception {
         String json = "{"
                 + "\"studentId\":" + studentId + ","
                 + "\"facultyId\":" + facultyId + ","
-                + "\"dateTime\":\"" + escapeJson(dateTime) + "\","
-                + "\"status\":\"" + escapeJson(safeStatus) + "\""
+                + "\"dateTime\":\"" + escapeJson(dateTime) + "\""
                 + "}";
 
         HttpResponse<String> response = sendRequestWithFallback("/bookings/book", "POST", json);
         if (response.statusCode() != 200 && response.statusCode() != 201) {
-            throw new Exception("Failed to book appointment: " + response.body());
+            throw new Exception("Failed to book appointment (HTTP " + response.statusCode() + "): " + response.body());
         }
         return gson.fromJson(response.body(), Appointment.class);
     }

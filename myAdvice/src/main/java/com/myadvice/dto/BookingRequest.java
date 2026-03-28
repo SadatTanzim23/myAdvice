@@ -9,17 +9,15 @@ public class BookingRequest {
     private Long studentId;
     private Long facultyId;
     private LocalDateTime dateTime;
-    private String status;
 
     //Empty constructor
     public BookingRequest() {}
 
     //Full constructor
-    public BookingRequest(Long studentId, Long facultyId, LocalDateTime dateTime, String status) {
+    public BookingRequest(Long studentId, Long facultyId, LocalDateTime dateTime) {
         this.studentId = studentId;
         this.facultyId = facultyId;
         this.dateTime = dateTime;
-        this.status = status;
     }
 
     //Getters and Setters
@@ -45,15 +43,6 @@ public class BookingRequest {
     public void setDateTime(LocalDateTime dateTime) {
         this.dateTime = dateTime;
     }
-
-    public String getStatus() {
-        return status;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
-    }
-
 
 
 }

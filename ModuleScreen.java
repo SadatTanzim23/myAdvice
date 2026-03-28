@@ -1,6 +1,11 @@
 import java.awt.*;
 import javax.swing.*;
 import javax.swing.border.*;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -1017,31 +1022,29 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
             JOptionPane.showMessageDialog(this, "No faculty available.", "Info", JOptionPane.INFORMATION_MESSAGE);
             return;
         }
-        JPanel panel = new JPanel(new GridLayout(4, 2, 8, 8));
+        JPanel panel = new JPanel(new GridLayout(3, 2, 8, 8));
         panel.setBorder(new EmptyBorder(16, 16, 16, 16));
         JTextField studentIdField = new JTextField();
         JComboBox<Faculty> facultyCombo = new JComboBox<>(allFaculty.toArray(new Faculty[0]));
-        JTextField dateTimeField = new JTextField("2026-04-01T10:00:00");
-        JTextField statusField = new JTextField("scheduled");
         panel.add(new JLabel("Student ID:")); panel.add(studentIdField);
         panel.add(new JLabel("Faculty:")); panel.add(facultyCombo);
-        panel.add(new JLabel("Date & Time (yyyy-MM-ddTHH:mm:ss):")); panel.add(dateTimeField);
-        panel.add(new JLabel("Status:")); panel.add(statusField);
         int result = JOptionPane.showConfirmDialog(this, panel, "Book Advising Appointment",
                 JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
         if (result != JOptionPane.OK_OPTION) return;
         String studentIdentifier = studentIdField.getText().trim();
         Faculty selectedFaculty = (Faculty) facultyCombo.getSelectedItem();
-        String dateTime = dateTimeField.getText().trim();
-        String status = statusField.getText().trim();
-        if (studentIdentifier.isEmpty() || selectedFaculty == null || dateTime.isEmpty()) {
+        if (studentIdentifier.isEmpty() || selectedFaculty == null) {
             JOptionPane.showMessageDialog(this, "Please fill in all fields.", "Validation Error", JOptionPane.ERROR_MESSAGE);
             return;
         }
+
+        final String dateTime = promptForDateTimeIso("Book Advising Appointment", null);
+        if (dateTime == null) return;
+
         new Thread(() -> {
             try {
                 Long resolvedStudentId = resolveStudentIdInput(studentIdentifier);
-                ApiClient.bookAppointment(resolvedStudentId, selectedFaculty.getId(), dateTime, status);
+                ApiClient.bookAppointment(resolvedStudentId, selectedFaculty.getId(), dateTime);
                 SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
                         "Appointment booked successfully!", "Success", JOptionPane.INFORMATION_MESSAGE));
             } catch (Exception e) {
@@ -1099,9 +1102,9 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
                                         }
                                     }
 
-                                    sb.append("- ").append(a.getDateTime())
+                                    sb.append("- ").append(formatDateTimeForDisplay(a.getDateTime()))
                                             .append(" | Student: ").append(studentName)
-                                            .append(" | Status: ").append(a.getStatus()).append("\n");
+                                            .append("\n");
                                 }
                                 JTextArea textArea = new JTextArea(sb.toString(), 14, 50);
                                 textArea.setEditable(false);
@@ -1141,10 +1144,9 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
                     }
                     StringBuilder sb = new StringBuilder("Your Appointments:\n\n");
                     for (Appointment a : appointments) {
-                        sb.append("- ID: ").append(a.getId())
-                                .append(" | ").append(a.getDateTime())
+                        sb.append("- ").append(formatDateTimeForDisplay(a.getDateTime()))
                                 .append(" | Faculty: ").append(a.getFaculty() != null ? a.getFaculty().getFirstName() + " " + a.getFaculty().getLastName() : "N/A")
-                                .append(" | Status: ").append(a.getStatus()).append("\n");
+                                .append("\n");
                     }
                     JTextArea textArea = new JTextArea(sb.toString(), 14, 55);
                     textArea.setEditable(false);
@@ -1224,7 +1226,7 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
                         String[] options = new String[appointments.size()];
                         for (int i = 0; i < appointments.size(); i++) {
                             Appointment a = appointments.get(i);
-                            options[i] = "ID: " + a.getId() + " | " + a.getDateTime() + " | " + a.getStatus();
+                            options[i] = formatDateTimeForDisplay(a.getDateTime());
                         }
                         int selectedIndex = JOptionPane.showOptionDialog(this,
                                 "Select an appointment:",
@@ -1252,13 +1254,11 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
                                 }
                             }).start();
                         } else if (action == 1) {
-                            String newDateTime = JOptionPane.showInputDialog(this,
-                                    "Enter new date and time (yyyy-MM-ddTHH:mm:ss):",
-                                    "Reschedule", JOptionPane.PLAIN_MESSAGE);
-                            if (newDateTime == null || newDateTime.trim().isEmpty()) return;
+                            String newDateTime = promptForDateTimeIso("Reschedule Appointment", selected.getDateTime());
+                            if (newDateTime == null) return;
                             new Thread(() -> {
                                 try {
-                                    ApiClient.rescheduleAppointment(selected.getId(), newDateTime.trim());
+                                    ApiClient.rescheduleAppointment(selected.getId(), newDateTime);
                                     SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
                                             "Appointment rescheduled!", "Success", JOptionPane.INFORMATION_MESSAGE));
                                 } catch (Exception e) {
@@ -1275,6 +1275,114 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
                         "Error: " + errorMsg, "Error", JOptionPane.ERROR_MESSAGE));
             }
         }).start();
+    }
+
+    private String promptForDateTimeIso(String title, String initialIsoDateTime) {
+        LocalDate defaultDate = LocalDate.now().plusDays(1);
+        String defaultTime = "10:00";
+        String defaultAmPm = "AM";
+
+        if (initialIsoDateTime != null && !initialIsoDateTime.trim().isEmpty()) {
+            LocalDateTime parsed = parseIsoDateTime(initialIsoDateTime);
+            if (parsed != null) {
+                defaultDate = parsed.toLocalDate();
+                int hour24 = parsed.getHour();
+                int minute = parsed.getMinute();
+                int hour12 = hour24 % 12;
+                if (hour12 == 0) hour12 = 12;
+                defaultTime = String.format("%d:%02d", hour12, minute);
+                defaultAmPm = hour24 >= 12 ? "PM" : "AM";
+            }
+        }
+
+        JPanel panel = new JPanel(new GridLayout(3, 2, 8, 8));
+        panel.setBorder(new EmptyBorder(16, 16, 16, 16));
+        JTextField dateField = new JTextField(defaultDate.toString());
+        JTextField timeField = new JTextField(defaultTime);
+        JComboBox<String> amPmCombo = new JComboBox<>(new String[]{"AM", "PM"});
+        amPmCombo.setSelectedItem(defaultAmPm);
+
+        panel.add(new JLabel("Date (yyyy-MM-dd):"));
+        panel.add(dateField);
+        panel.add(new JLabel("Time (hh:mm):"));
+        panel.add(timeField);
+        panel.add(new JLabel("AM / PM:"));
+        panel.add(amPmCombo);
+
+        int result = JOptionPane.showConfirmDialog(this, panel, title,
+                JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+        if (result != JOptionPane.OK_OPTION) {
+            return null;
+        }
+
+        String dateInput = dateField.getText().trim();
+        String timeInput = timeField.getText().trim();
+        String amPm = amPmCombo.getSelectedItem() != null ? amPmCombo.getSelectedItem().toString() : "";
+
+        if (dateInput.isEmpty() || timeInput.isEmpty() || amPm.isEmpty()) {
+            JOptionPane.showMessageDialog(this,
+                    "Please fill in Date, Time, and AM/PM.",
+                    "Validation Error",
+                    JOptionPane.ERROR_MESSAGE);
+            return null;
+        }
+
+        try {
+            LocalDate parsedDate;
+            try {
+                parsedDate = LocalDate.parse(dateInput, DateTimeFormatter.ISO_LOCAL_DATE);
+            } catch (DateTimeParseException ex) {
+                parsedDate = LocalDate.parse(dateInput, DateTimeFormatter.ofPattern("yyyy-M-d"));
+            }
+
+            String[] timeParts = timeInput.split(":");
+            if (timeParts.length != 2) {
+                throw new IllegalArgumentException("Invalid time format");
+            }
+
+            int hour12 = Integer.parseInt(timeParts[0].trim());
+            int minute = Integer.parseInt(timeParts[1].trim());
+            if (hour12 < 1 || hour12 > 12 || minute < 0 || minute > 59) {
+                throw new IllegalArgumentException("Invalid time value");
+            }
+
+            int hour24 = hour12;
+            if ("PM".equalsIgnoreCase(amPm) && hour12 != 12) {
+                hour24 = hour12 + 12;
+            } else if ("AM".equalsIgnoreCase(amPm) && hour12 == 12) {
+                hour24 = 0;
+            }
+
+            return parsedDate + String.format("T%02d:%02d:00", hour24, minute);
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this,
+                    "Use Date as yyyy-MM-dd and Time as hh:mm, then choose AM or PM.",
+                    "Validation Error",
+                    JOptionPane.ERROR_MESSAGE);
+            return null;
+        }
+    }
+
+    private LocalDateTime parseIsoDateTime(String dateTime) {
+        if (dateTime == null || dateTime.trim().isEmpty()) return null;
+        String value = dateTime.trim();
+        try {
+            return LocalDateTime.parse(value);
+        } catch (DateTimeParseException ex) {
+            try {
+                return LocalDateTime.parse(value, DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm"));
+            } catch (DateTimeParseException ignored) {
+                return null;
+            }
+        }
+    }
+
+    private String formatDateTimeForDisplay(String dateTime) {
+        LocalDateTime parsed = parseIsoDateTime(dateTime);
+        if (parsed == null) {
+            return dateTime != null ? dateTime : "N/A";
+        }
+        return parsed.format(DateTimeFormatter.ofPattern("yyyy-MM-dd hh:mm a"));
     }
     private void fetchReportStudentsThen(Runnable onSuccess) {
         new Thread(() -> {

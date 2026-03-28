@@ -4,7 +4,9 @@ import com.myadvice.dto.BookingRequest;
 import com.myadvice.model.Appointment;
 import com.myadvice.service.BookingService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -21,11 +23,14 @@ public class BookingController {
     @PostMapping("/book")
     public Appointment bookAppointment(@RequestBody BookingRequest request){
         //@RequestBody tells Spring to convert the incoming JSON object into a BookingRequest object
-        return bookingService.bookAppointment(
-                request.getStudentId(),
-                request.getFacultyId(),
-                request.getDateTime(),
-                request.getStatus());
+        try {
+            return bookingService.bookAppointment(
+                    request.getStudentId(),
+                    request.getFacultyId(),
+                    request.getDateTime());
+        } catch (RuntimeException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage(), e);
+        }
     }
 
     //Endpoint to get all appointments for a specific student (GET /bookings/student/{studentId}
@@ -52,7 +57,11 @@ public class BookingController {
     public void cancelAppointment(@PathVariable("appointmentId") Long appointmentId){
         //@PathVariable gets appointmentID from URL and sends it to service
         //No return (only updates status to "cancelled")
-        bookingService.cancelAppointment(appointmentId);
+        try {
+            bookingService.cancelAppointment(appointmentId);
+        } catch (RuntimeException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage(), e);
+        }
     }
 
     //Endpoint to reschedule existing appointment with new date and time (PUT /bookings/reschedule/{appointmentId}
@@ -60,6 +69,10 @@ public class BookingController {
     @PutMapping("/reschedule/{appointmentId}")
     public Appointment rescheduleAppointment(@PathVariable("appointmentId") Long appointmentId, //Gets appointment ID from URL
                                              @RequestBody LocalDateTime newDateTime){ //Receives new date and time from request body
-        return bookingService.rescheduleAppointment(appointmentId, newDateTime); //Returns updated appointment
+        try {
+            return bookingService.rescheduleAppointment(appointmentId, newDateTime); //Returns updated appointment
+        } catch (RuntimeException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage(), e);
+        }
     }
 }
