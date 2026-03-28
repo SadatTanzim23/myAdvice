@@ -55,14 +55,12 @@ public class BookingService {
         return appointmentRepository.findByFaculty(faculty);
     }
 
-    //Cancels an existing appointment by changing its status to "cancelled"
+    //Cancels an existing appointment by deleting it from the database
     public void cancelAppointment(Long appointmentId) {
         //Look up appointment by ID (error if not found)
         Appointment appointment =  appointmentRepository.findById(appointmentId).orElseThrow(() -> new RuntimeException("Appointment not found"));
-        //Update status to cancelled
-        appointment.setStatus("cancelled");
-        //Save updated appointment back to database
-        appointmentRepository.save(appointment);
+        //Delete appointment record
+        appointmentRepository.delete(appointment);
     }
 
     //Reschedule an appointment with new date and time
