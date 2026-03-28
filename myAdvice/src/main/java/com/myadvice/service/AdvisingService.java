@@ -9,9 +9,12 @@ import org.springframework.stereotype.Service;
 import java.util.stream.Collectors;
 
 import java.util.List;
+import java.util.Set;
 
 @Service //Marks class as service (business logic)
 public class AdvisingService {
+    private static final double PASSING_GRADE = 60.0;
+
     //No need to create any of these repositories manually
     @Autowired
     private StudentRepository studentRepository;
@@ -60,13 +63,19 @@ public class AdvisingService {
             return true; //No prerequisite needed, student can take it
         }
 
-        List<Course> completedCourses = transcriptRepository.findByStudentId(studentId)
+        Set<Long> completedCourseIds = transcriptRepository.findByStudentId(studentId)
                 .stream()
+                .filter(transcript -> transcript.getGrade() != null && transcript.getGrade() >= PASSING_GRADE)
                 .map(transcript -> transcript.getCourse())
-                .collect(Collectors.toList());
+                .filter(c -> c != null && c.getId() != null)
+                .map(Course::getId)
+                .collect(Collectors.toSet());
 
         // Student can take the course only if all prerequisites are completed.
-        return completedCourses.containsAll(prerequisites);
+        return prerequisites.stream()
+                .allMatch(prerequisite -> prerequisite != null
+                        && prerequisite.getId() != null
+                        && completedCourseIds.contains(prerequisite.getId()));
     }
 
 }
