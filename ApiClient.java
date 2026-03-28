@@ -5,11 +5,14 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class ApiClient {
-    private static final String BASE_URL = "http://localhost:8080";
+    private static volatile String BASE_URL = "http://localhost:8080";
     private static final HttpClient client = HttpClient.newHttpClient();
     private static final Gson gson = new Gson();
 
@@ -17,17 +20,34 @@ public class ApiClient {
 
     // Course API methods
     public static List<Course> getAllCourses() throws Exception {
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(BASE_URL + "/admin/courses"))
-                .GET()
-                .build();
+        String lastError = null;
+        for (String base : getBaseUrlCandidates()) {
+            try {
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create(base + "/admin/courses"))
+                        .GET()
+                        .build();
 
-        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-        // Error handling for failed API calls
-        if (response.statusCode() != 200) {
-            throw new Exception("Failed to load courses: " + response.body());
+                HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+                if (response.statusCode() == 200) {
+                    BASE_URL = base;
+                    return gson.fromJson(response.body(), new TypeToken<List<Course>>(){}.getType());
+                }
+                lastError = "status " + response.statusCode() + " from " + base;
+            } catch (Exception e) {
+                lastError = "connection failed to " + base;
+            }
         }
-        return gson.fromJson(response.body(), new TypeToken<List<Course>>(){}.getType());
+        throw new Exception("Failed to load courses: " + (lastError != null ? lastError : "unable to reach backend"));
+    }
+
+    private static List<String> getBaseUrlCandidates() {
+        LinkedHashSet<String> candidates = new LinkedHashSet<>();
+        candidates.add(BASE_URL);
+        candidates.add("http://localhost:8080");
+        candidates.add("http://localhost:8081");
+        candidates.add("http://localhost:8082");
+        return new ArrayList<>(candidates);
     }
 
     public static Course addCourse(String courseCode, String courseName, Integer credits, String description) throws Exception {
@@ -403,6 +423,91 @@ public class ApiClient {
             throw new Exception("Failed to load appointment counts: " + response.body());
         }
         return gson.fromJson(response.body(), new TypeToken<Map<String, Double>>(){}.getType());
+    }
+
+    // Advising API methods
+    public static String getStudentProgram(Long studentId) throws Exception {
+        HttpResponse<String> response = sendAdvisingRequestWithFallback("/advising/program/" + studentId);
+        if (response.statusCode() != 200) {
+            throw new Exception("Failed to load student program: " + response.body());
+        }
+        String body = response.body();
+        if (body == null) {
+            return "";
+        }
+
+        String trimmed = body.trim();
+        // Backend may return either plain text or a JSON string; support both.
+        if (trimmed.startsWith("\"") && trimmed.endsWith("\"")) {
+            return gson.fromJson(trimmed, String.class);
+        }
+        return trimmed;
+    }
+
+    public static List<Transcript> getAdvisingCompletedCourses(Long studentId) throws Exception {
+        HttpResponse<String> response = sendAdvisingRequestWithFallback("/advising/completed/" + studentId);
+        if (response.statusCode() != 200) {
+            throw new Exception("Failed to load completed courses: " + response.body());
+        }
+        return gson.fromJson(response.body(), new TypeToken<List<Transcript>>(){}.getType());
+    }
+
+    public static List<Course> getAdvisingRemainingCourses(Long studentId) throws Exception {
+        HttpResponse<String> response = sendAdvisingRequestWithFallback("/advising/remaining/" + studentId);
+        if (response.statusCode() != 200) {
+            throw new Exception("Failed to load remaining courses: " + response.body());
+        }
+        return gson.fromJson(response.body(), new TypeToken<List<Course>>(){}.getType());
+    }
+
+    public static boolean checkAdvisingPrerequisites(Long studentId, Long courseId) throws Exception {
+        HttpResponse<String> response = sendAdvisingRequestWithFallback("/advising/prerequisites/" + studentId + "/" + courseId);
+        if (response.statusCode() != 200) {
+            throw new Exception("Failed to check prerequisites: " + response.body());
+        }
+        return gson.fromJson(response.body(), Boolean.class);
+    }
+
+    private static HttpResponse<String> sendAdvisingRequestWithFallback(String path) throws Exception {
+        Set<String> candidates = new LinkedHashSet<>();
+        candidates.add(BASE_URL);
+        candidates.add("http://localhost:8082");
+        candidates.add("http://localhost:8081");
+        candidates.add("http://localhost:8080");
+
+        List<String> attempted = new ArrayList<>();
+        HttpResponse<String> lastResponse = null;
+
+        for (String base : candidates) {
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(base + path))
+                    .GET()
+                    .build();
+
+            HttpResponse<String> response;
+            try {
+                response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            } catch (Exception ex) {
+                attempted.add(base + " -> connection failed");
+                continue;
+            }
+
+            attempted.add(base + " -> " + response.statusCode());
+
+            if (response.statusCode() == 200) {
+                return response;
+            }
+
+            // Keep first non-404 response as useful backend error context.
+            if (lastResponse == null || lastResponse.statusCode() == 404) {
+                lastResponse = response;
+            }
+        }
+
+        if (lastResponse != null) {
+            return lastResponse;
+        }
+        throw new Exception("Unable to reach advising service. Attempts: " + String.join(", ", attempted));
     }
 }
 
