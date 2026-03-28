@@ -2,10 +2,13 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
 import java.net.URI;
+import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -356,13 +359,142 @@ public class ApiClient {
         return gson.fromJson(response.body(), Appointment.class);
     }
 
+    // Schedule API methods
+    public static List<Schedule> getAllSchedules() throws Exception {
+        HttpResponse<String> response = sendScheduleRequestWithFallback("/all");
+        if (response.statusCode() == 200) {
+            return gson.fromJson(response.body(), new TypeToken<List<Schedule>>(){}.getType());
+        }
+        if (response.statusCode() == 404) {
+            return buildSchedulesFromSections();
+        }
+        throw new Exception("Failed to load schedules: " + response.body());
+    }
+
+    public static List<Schedule> getCourseSchedules(Long courseId) throws Exception {
+        HttpResponse<String> response = sendScheduleRequestWithFallback("/course/" + courseId);
+        if (response.statusCode() == 200) {
+            return gson.fromJson(response.body(), new TypeToken<List<Schedule>>(){}.getType());
+        }
+        if (response.statusCode() == 404) {
+            List<Schedule> all = buildSchedulesFromSections();
+            List<Schedule> filtered = new ArrayList<>();
+            for (Schedule s : all) {
+                if (s != null && s.getCourse() != null && s.getCourse().getId() != null && s.getCourse().getId().equals(courseId)) {
+                    filtered.add(s);
+                }
+            }
+            return filtered;
+        }
+        throw new Exception("Failed to load course schedules: " + response.body());
+    }
+
+    public static List<Schedule> getSchedulesByDay(String dayOfWeek) throws Exception {
+        String encodedDay = URLEncoder.encode(dayOfWeek == null ? "" : dayOfWeek, StandardCharsets.UTF_8);
+        HttpResponse<String> response = sendScheduleRequestWithFallback("/day/" + encodedDay);
+        if (response.statusCode() == 200) {
+            return gson.fromJson(response.body(), new TypeToken<List<Schedule>>(){}.getType());
+        }
+        if (response.statusCode() == 404) {
+            List<Schedule> all = buildSchedulesFromSections();
+            List<Schedule> filtered = new ArrayList<>();
+            String target = dayOfWeek == null ? "" : dayOfWeek.trim().toLowerCase();
+            for (Schedule s : all) {
+                String day = s != null ? s.getDayOfWeek() : null;
+                if (day != null && day.toLowerCase().contains(target)) {
+                    filtered.add(s);
+                }
+            }
+            return filtered;
+        }
+        throw new Exception("Failed to load schedules by day: " + response.body());
+    }
+
+    public static boolean checkScheduleConflict(Long scheduleId1, Long scheduleId2) throws Exception {
+        HttpResponse<String> response = sendScheduleRequestWithFallback(
+                "/conflict/" + scheduleId1 + "/" + scheduleId2
+        );
+        if (response.statusCode() == 200) {
+            String body = response.body() == null ? "" : response.body().trim();
+            return "true".equalsIgnoreCase(body);
+        }
+        if (response.statusCode() == 404) {
+            List<Schedule> all = buildSchedulesFromSections();
+            Schedule first = null;
+            Schedule second = null;
+            for (Schedule s : all) {
+                if (s == null || s.getId() == null) continue;
+                if (s.getId().equals(scheduleId1)) first = s;
+                if (s.getId().equals(scheduleId2)) second = s;
+            }
+            if (first == null || second == null) {
+                throw new Exception("Schedule not found for one or both IDs.");
+            }
+            return hasDayOverlap(first.getDayOfWeek(), second.getDayOfWeek());
+        }
+        throw new Exception("Failed to check schedule conflict: " + response.body());
+    }
+
+    private static HttpResponse<String> sendScheduleRequestWithFallback(String suffixPath) throws Exception {
+        HttpResponse<String> response = sendRequestWithFallback("/schedule" + suffixPath, "GET", null);
+        if (response.statusCode() != 404) {
+            return response;
+        }
+        return sendRequestWithFallback("/schedules" + suffixPath, "GET", null);
+    }
+
+    private static List<Schedule> buildSchedulesFromSections() throws Exception {
+        List<Section> sections = getAllSections();
+        List<Schedule> schedules = new ArrayList<>();
+        if (sections == null) {
+            return schedules;
+        }
+
+        for (Section section : sections) {
+            Schedule s = new Schedule();
+            s.setId(section.getId());
+            s.setCourse(section.getCourse());
+            s.setDayOfWeek(section.getDayOfWeek());
+            s.setStartTime("N/A");
+            s.setEndTime("N/A");
+            s.setRoomNumber(section.getRoom() != null && !section.getRoom().isBlank() ? section.getRoom() : "N/A");
+            s.setTerm("N/A");
+            schedules.add(s);
+        }
+        return schedules;
+    }
+
+    private static boolean hasDayOverlap(String day1, String day2) {
+        Set<String> firstDays = normalizeDays(day1);
+        Set<String> secondDays = normalizeDays(day2);
+        for (String d : firstDays) {
+            if (secondDays.contains(d)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static Set<String> normalizeDays(String dayValue) {
+        Set<String> days = new HashSet<>();
+        if (dayValue == null || dayValue.isBlank()) {
+            return days;
+        }
+        String[] parts = dayValue.split(",");
+        for (String p : parts) {
+            if (p != null) {
+                String d = p.trim().toLowerCase();
+                if (!d.isEmpty()) {
+                    days.add(d);
+                }
+            }
+        }
+        return days;
+    }
+
     // Section API methods
     public static List<Section> getAllSections() throws Exception {
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(BASE_URL + "/admin/sections"))
-                .GET()
-                .build();
-        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        HttpResponse<String> response = sendRequestWithFallback("/admin/sections", "GET", null);
         if (response.statusCode() != 200) {
             throw new Exception("Failed to load sections: " + response.body());
         }
@@ -371,12 +503,7 @@ public class ApiClient {
 
     public static Section addSection(Section section) throws Exception {
         String json = gson.toJson(section);
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(BASE_URL + "/admin/sections/add"))
-                .header("Content-Type", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString(json))
-                .build();
-        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        HttpResponse<String> response = sendRequestWithFallback("/admin/sections/add", "POST", json);
         if (response.statusCode() != 200 && response.statusCode() != 201) {
             throw new Exception("Failed to add section: " + response.body());
         }
@@ -384,11 +511,7 @@ public class ApiClient {
     }
 
     public static void deleteSection(Long sectionId) throws Exception {
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(BASE_URL + "/admin/sections/delete/" + sectionId))
-                .DELETE()
-                .build();
-        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        HttpResponse<String> response = sendRequestWithFallback("/admin/sections/delete/" + sectionId, "DELETE", null);
         if (response.statusCode() != 200) {
             throw new Exception("Failed to delete section: " + response.body());
         }
@@ -397,12 +520,7 @@ public class ApiClient {
 
     public static Section editSection(Long sectionId, Section section) throws Exception {
         String json = gson.toJson(section);
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(BASE_URL + "/admin/sections/edit/" + sectionId))
-                .header("Content-Type", "application/json")
-                .method("PUT", HttpRequest.BodyPublishers.ofString(json))
-                .build();
-        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        HttpResponse<String> response = sendRequestWithFallback("/admin/sections/edit/" + sectionId, "PUT", json);
         if (response.statusCode() != 200) {
             throw new Exception("Failed to edit section: " + response.body());
         }
