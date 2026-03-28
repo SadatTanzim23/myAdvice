@@ -2000,6 +2000,47 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
         }).start();
     }
 
+    private void fetchTranscriptsByStudentThen(Long studentId, Runnable onSuccess) {
+        new Thread(() -> {
+            try {
+                List<Transcript> transcripts = ApiClient.getTranscriptsByStudent(studentId);
+                if (transcripts == null) {
+                    transcripts = new ArrayList<>();
+                }
+                allTranscripts = transcripts;
+                if (onSuccess != null) {
+                    SwingUtilities.invokeLater(onSuccess);
+                }
+            } catch (Exception e) {
+                String errorMsg = e.getMessage() != null ? e.getMessage() : e.toString();
+                SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
+                        "Error: " + errorMsg,
+                        "Error", JOptionPane.ERROR_MESSAGE));
+            }
+        }).start();
+    }
+
+    private Long promptStudentIdForTranscriptAccess(String title) {
+        String input = JOptionPane.showInputDialog(this,
+                "Enter Student ID:",
+                title,
+                JOptionPane.PLAIN_MESSAGE);
+        if (input == null || input.trim().isEmpty()) {
+            return null;
+        }
+
+        try {
+            return resolveStudentIdInput(input.trim());
+        } catch (Exception e) {
+            String errorMsg = e.getMessage() != null ? e.getMessage() : e.toString();
+            JOptionPane.showMessageDialog(this,
+                    "Error: " + errorMsg,
+                    "Validation Error",
+                    JOptionPane.ERROR_MESSAGE);
+            return null;
+        }
+    }
+
     private void showManageTranscriptsDialog() {
         String[] options = {"View Transcripts", "Add Transcript", "Edit Transcript", "Delete Transcript", "Cancel"};
         int choice = JOptionPane.showOptionDialog(this,
@@ -2012,10 +2053,22 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
                 options[0]);
 
         switch (choice) {
-            case 0 -> fetchTranscriptsThen(this::showTranscriptListDialog);
+            case 0 -> fetchStudentsThen(() -> {
+                Long studentId = promptStudentIdForTranscriptAccess("View Transcripts");
+                if (studentId == null) return;
+                fetchTranscriptsByStudentThen(studentId, this::showTranscriptListDialog);
+            });
             case 1 -> fetchCoursesThen(() -> fetchStudentsThen(this::showAddTranscriptDialog));
-            case 2 -> fetchTranscriptsThen(() -> fetchCoursesThen(() -> fetchStudentsThen(this::showEditTranscriptDialog)));
-            case 3 -> fetchTranscriptsThen(this::showDeleteTranscriptDialog);
+            case 2 -> fetchStudentsThen(() -> {
+                Long studentId = promptStudentIdForTranscriptAccess("Edit Transcript");
+                if (studentId == null) return;
+                fetchTranscriptsByStudentThen(studentId, () -> fetchCoursesThen(this::showEditTranscriptDialog));
+            });
+            case 3 -> fetchStudentsThen(() -> {
+                Long studentId = promptStudentIdForTranscriptAccess("Delete Transcript");
+                if (studentId == null) return;
+                fetchTranscriptsByStudentThen(studentId, this::showDeleteTranscriptDialog);
+            });
             default -> { }
         }
     }
@@ -2132,22 +2185,21 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
             return;
         }
 
-        String[] options = new String[allTranscripts.size()];
-        for (int i = 0; i < allTranscripts.size(); i++) {
-            options[i] = allTranscripts.get(i).toString();
-        }
+        JComboBox<Transcript> transcriptCombo = new JComboBox<>(allTranscripts.toArray(new Transcript[0]));
+        JPanel selectorPanel = new JPanel(new GridLayout(1, 2, 8, 8));
+        selectorPanel.setBorder(new EmptyBorder(16, 16, 16, 16));
+        selectorPanel.add(new JLabel("Transcript:"));
+        selectorPanel.add(transcriptCombo);
 
-        int selectedIndex = JOptionPane.showOptionDialog(this,
-                "Select transcript to edit:",
-                "Edit Transcript",
-                JOptionPane.DEFAULT_OPTION,
-                JOptionPane.PLAIN_MESSAGE,
-                null,
-                options,
-                options[0]);
+        int selectedResult = JOptionPane.showConfirmDialog(this,
+                selectorPanel,
+                "Select Transcript to Edit",
+                JOptionPane.OK_CANCEL_OPTION,
+                JOptionPane.PLAIN_MESSAGE);
+        if (selectedResult != JOptionPane.OK_OPTION) return;
 
-        if (selectedIndex < 0) return;
-        Transcript selected = allTranscripts.get(selectedIndex);
+        Transcript selected = (Transcript) transcriptCombo.getSelectedItem();
+        if (selected == null) return;
 
         JPanel panel = new JPanel(new GridLayout(4, 2, 8, 8));
         panel.setBorder(new EmptyBorder(16, 16, 16, 16));
@@ -2235,22 +2287,21 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
             return;
         }
 
-        String[] options = new String[allTranscripts.size()];
-        for (int i = 0; i < allTranscripts.size(); i++) {
-            options[i] = allTranscripts.get(i).toString();
-        }
+        JComboBox<Transcript> transcriptCombo = new JComboBox<>(allTranscripts.toArray(new Transcript[0]));
+        JPanel selectorPanel = new JPanel(new GridLayout(1, 2, 8, 8));
+        selectorPanel.setBorder(new EmptyBorder(16, 16, 16, 16));
+        selectorPanel.add(new JLabel("Transcript:"));
+        selectorPanel.add(transcriptCombo);
 
-        int selectedIndex = JOptionPane.showOptionDialog(this,
-                "Select transcript to delete:",
-                "Delete Transcript",
-                JOptionPane.DEFAULT_OPTION,
-                JOptionPane.WARNING_MESSAGE,
-                null,
-                options,
-                options[0]);
+        int selectedResult = JOptionPane.showConfirmDialog(this,
+                selectorPanel,
+                "Select Transcript to Delete",
+                JOptionPane.OK_CANCEL_OPTION,
+                JOptionPane.WARNING_MESSAGE);
+        if (selectedResult != JOptionPane.OK_OPTION) return;
 
-        if (selectedIndex < 0) return;
-        Transcript selected = allTranscripts.get(selectedIndex);
+        Transcript selected = (Transcript) transcriptCombo.getSelectedItem();
+        if (selected == null) return;
 
         int confirm = JOptionPane.showConfirmDialog(this,
                 "Delete transcript record?",
