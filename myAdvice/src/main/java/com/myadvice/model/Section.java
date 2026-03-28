@@ -31,8 +31,17 @@ public class Section {
     @Column(name = "instructor_name", nullable = false)
     private String instructorName;
 
+    @Column(name = "room")
+    private String room;
+
     @Column(name="day_of_week", nullable = false)
     private String dayOfWeek;
+
+    @Column(name = "lab_day_of_week")
+    private String labDayOfWeek;
+
+    @Column(name = "lab_time")
+    private String labTime;
     //Empty constructor
     public Section() {}
 
@@ -103,11 +112,35 @@ public class Section {
         this.instructorName = instructorName;
     }
 
+    public String getRoom() {
+        return room;
+    }
+
+    public void setRoom(String room) {
+        this.room = room;
+    }
+
     public String getDayOfWeek() {
         return dayOfWeek;
     }
     public void setDayOfWeek(String dayOfWeek) {
         this.dayOfWeek = dayOfWeek;
+    }
+
+    public String getLabDayOfWeek() {
+        return labDayOfWeek;
+    }
+
+    public void setLabDayOfWeek(String labDayOfWeek) {
+        this.labDayOfWeek = labDayOfWeek;
+    }
+
+    public String getLabTime() {
+        return labTime;
+    }
+
+    public void setLabTime(String labTime) {
+        this.labTime = labTime;
     }
 
 

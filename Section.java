@@ -7,6 +7,9 @@ public class Section {
     private Integer enrolledCount;
     private String instructorName;
     private String dayOfWeek;
+    private String room;
+    private String labDayOfWeek;
+    private String labTime;
 
     public Section() {}
 
@@ -45,6 +48,15 @@ public class Section {
 
     public String getDayOfWeek() { return dayOfWeek; }
     public void setDayOfWeek(String dayOfWeek) { this.dayOfWeek = dayOfWeek; }
+
+    public String getRoom() { return room; }
+    public void setRoom(String room) { this.room = room; }
+
+    public String getLabDayOfWeek() { return labDayOfWeek; }
+    public void setLabDayOfWeek(String labDayOfWeek) { this.labDayOfWeek = labDayOfWeek; }
+
+    public String getLabTime() { return labTime; }
+    public void setLabTime(String labTime) { this.labTime = labTime; }
 
     @Override
     public String toString() {
