@@ -635,16 +635,49 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
 
     private void showAdvisingProgramDialog() {
         fetchStudentsThen(() -> {
-            Student student = selectStudent("Select student:", "View Student Program");
-            if (student == null) {
+            String studentIdInput = JOptionPane.showInputDialog(
+                    this,
+                    "Enter Student ID:",
+                    "View Student Program",
+                    JOptionPane.PLAIN_MESSAGE
+            );
+            if (studentIdInput == null || studentIdInput.trim().isEmpty()) {
                 return;
             }
 
+            final String input = studentIdInput.trim();
+            Student matchedStudent = null;
+            if (allStudents != null) {
+                for (Student s : allStudents) {
+                    if (s == null || s.getId() == null) continue;
+                    if (input.equals(String.valueOf(s.getId()))) {
+                        matchedStudent = s;
+                        break;
+                    }
+                    if (s.getStudentNumber() != null && input.equalsIgnoreCase(s.getStudentNumber().trim())) {
+                        matchedStudent = s;
+                        break;
+                    }
+                }
+            }
+
+            if (matchedStudent == null) {
+                JOptionPane.showMessageDialog(this,
+                        "Student not found for ID: " + input,
+                        "Validation Error",
+                        JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            final Long studentId = matchedStudent.getId();
+            final Student displayStudent = matchedStudent;
+
             new Thread(() -> {
                 try {
-                    String programName = ApiClient.getStudentProgram(student.getId());
+                    String programName = ApiClient.getStudentProgram(studentId);
                     SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
-                            "Student: " + student + "\nProgram: " + (programName != null ? programName : "N/A"),
+                            "Student: " + (displayStudent != null ? displayStudent : ("Student ID " + studentId))
+                                    + "\nProgram: " + (programName != null ? programName : "N/A"),
                             "Student Program", JOptionPane.INFORMATION_MESSAGE));
                 } catch (Exception e) {
                     showAsyncError("Error loading student program", e);
@@ -813,10 +846,42 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
 
     private void showAdvisingPrerequisiteCheckDialog() {
         fetchStudentsThen(() -> fetchCoursesThen(() -> {
-            Student student = selectStudent("Select student:", "Check Course Eligibility");
-            if (student == null) {
+            String studentIdInput = JOptionPane.showInputDialog(
+                    this,
+                    "Enter Student ID:",
+                    "Check Course Eligibility",
+                    JOptionPane.PLAIN_MESSAGE
+            );
+            if (studentIdInput == null || studentIdInput.trim().isEmpty()) {
                 return;
             }
+
+            final String input = studentIdInput.trim();
+            Student matchedStudent = null;
+            if (allStudents != null) {
+                for (Student s : allStudents) {
+                    if (s == null || s.getId() == null) continue;
+                    if (input.equals(String.valueOf(s.getId()))) {
+                        matchedStudent = s;
+                        break;
+                    }
+                    if (s.getStudentNumber() != null && input.equalsIgnoreCase(s.getStudentNumber().trim())) {
+                        matchedStudent = s;
+                        break;
+                    }
+                }
+            }
+
+            if (matchedStudent == null) {
+                JOptionPane.showMessageDialog(this,
+                        "Student not found for ID: " + input,
+                        "Validation Error",
+                        JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            final Long studentId = matchedStudent.getId();
+            final Student displayStudent = matchedStudent;
 
             Course course = selectCourse("Select course:", "Check Course Eligibility");
             if (course == null) {
@@ -825,9 +890,9 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
 
             new Thread(() -> {
                 try {
-                    boolean eligible = ApiClient.checkAdvisingPrerequisites(student.getId(), course.getId());
+                    boolean eligible = ApiClient.checkAdvisingPrerequisites(studentId, course.getId());
                     String message = eligible
-                            ? "Eligible: " + student + " can take " + course + "."
+                            ? "Eligible: " + displayStudent + " can take " + course + "."
                             : "Not eligible: prerequisites are not fully completed for " + course + ".";
 
                     SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
@@ -876,24 +941,23 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
             return null;
         }
 
-        String[] options = new String[allCourses.size()];
-        for (int i = 0; i < allCourses.size(); i++) {
-            options[i] = allCourses.get(i).toString();
-        }
+        JComboBox<Course> courseCombo = new JComboBox<>(allCourses.toArray(new Course[0]));
+        JPanel panel = new JPanel(new GridLayout(1, 2, 8, 8));
+        panel.setBorder(new EmptyBorder(12, 12, 12, 12));
+        panel.add(new JLabel(message));
+        panel.add(courseCombo);
 
-        int selectedIndex = JOptionPane.showOptionDialog(this,
-                message,
+        int result = JOptionPane.showConfirmDialog(this,
+                panel,
                 title,
-                JOptionPane.DEFAULT_OPTION,
-                JOptionPane.PLAIN_MESSAGE,
-                null,
-                options,
-                options[0]);
+                JOptionPane.OK_CANCEL_OPTION,
+                JOptionPane.PLAIN_MESSAGE);
 
-        if (selectedIndex < 0) {
+        if (result != JOptionPane.OK_OPTION) {
             return null;
         }
-        return allCourses.get(selectedIndex);
+
+        return (Course) courseCombo.getSelectedItem();
     }
 
     private void showAsyncError(String prefix, Exception e) {
