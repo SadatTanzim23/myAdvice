@@ -64,11 +64,18 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
                                         "Credits: " + course.getCredits()
                                 };
                             }
+
+                            JPanel curriculumPanel = new JPanel(new BorderLayout(0, 12));
+                            curriculumPanel.setOpaque(false);
+                            curriculumPanel.add(buildAdvisingToolsPanel(), BorderLayout.NORTH);
+
                             JPanel coursePanel = buildCoursePanel(courseActions);
                             JScrollPane scrollPane = new JScrollPane(coursePanel);
                             scrollPane.setOpaque(false);
                             scrollPane.getViewport().setOpaque(false);
-                            add(scrollPane, BorderLayout.CENTER);
+                            curriculumPanel.add(scrollPane, BorderLayout.CENTER);
+
+                            add(curriculumPanel, BorderLayout.CENTER);
                         }
                         revalidate();
                         repaint();
@@ -126,6 +133,55 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
             p.add(new ActionCard(items[i][0], items[i][1]), gbc);
         }
         return p;
+    }
+
+    private JPanel buildAdvisingToolsPanel() {
+        JPanel wrapper = new JPanel(new BorderLayout());
+        wrapper.setOpaque(false);
+        wrapper.setBorder(new EmptyBorder(16, 40, 0, 40));
+
+        JPanel grid = new JPanel(new GridBagLayout());
+        grid.setOpaque(false);
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(8, 8, 8, 8);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.weightx = 1;
+
+        JLabel heading = new JLabel("Advising Tools");
+        heading.setFont(new Font("Dialog", Font.BOLD, 13));
+        heading.setForeground(myAdvice.TEXT_MUTED);
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.gridwidth = 2;
+        grid.add(heading, gbc);
+
+        String[][] tools = {
+                {"View Student Program", "Lookup program by student"},
+                {"View Completed Courses", "Show completed transcript entries"},
+                {"View Remaining Courses", "Show courses left to complete"},
+                {"Check Course Eligibility", "Check prerequisites for a course"}
+        };
+
+        for (int i = 0; i < tools.length; i++) {
+            gbc.gridy = i / 2 + 1;
+            gbc.gridx = i % 2;
+            gbc.gridwidth = 1;
+            ActionCard card = new ActionCard(tools[i][0], tools[i][1]);
+            if (i == 0) {
+                card.setOnClickAction(this::showAdvisingProgramDialog);
+            } else if (i == 1) {
+                card.setOnClickAction(this::showAdvisingCompletedDialog);
+            } else if (i == 2) {
+                card.setOnClickAction(this::showAdvisingRemainingDialog);
+            } else {
+                card.setOnClickAction(this::showAdvisingPrerequisiteCheckDialog);
+            }
+            grid.add(card, gbc);
+        }
+
+        wrapper.add(grid, BorderLayout.CENTER);
+        return wrapper;
     }
 
     // Error panel to display API error messages
@@ -554,6 +610,204 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
                         "Error", JOptionPane.ERROR_MESSAGE));
             }
         }).start();
+    }
+
+    private void showAdvisingProgramDialog() {
+        fetchStudentsThen(() -> {
+            Student student = selectStudent("Select student:", "View Student Program");
+            if (student == null) {
+                return;
+            }
+
+            new Thread(() -> {
+                try {
+                    String programName = ApiClient.getStudentProgram(student.getId());
+                    SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
+                            "Student: " + student + "\nProgram: " + (programName != null ? programName : "N/A"),
+                            "Student Program", JOptionPane.INFORMATION_MESSAGE));
+                } catch (Exception e) {
+                    showAsyncError("Error loading student program", e);
+                }
+            }).start();
+        });
+    }
+
+    private void showAdvisingCompletedDialog() {
+        fetchStudentsThen(() -> {
+            Student student = selectStudent("Select student:", "Completed Courses");
+            if (student == null) {
+                return;
+            }
+
+            new Thread(() -> {
+                try {
+                    List<Transcript> completed = ApiClient.getAdvisingCompletedCourses(student.getId());
+                    if (completed == null) {
+                        completed = new ArrayList<>();
+                    }
+                    List<Transcript> finalCompleted = completed;
+
+                    SwingUtilities.invokeLater(() -> {
+                        StringBuilder sb = new StringBuilder("Completed Courses for ")
+                                .append(student)
+                                .append(":\n\n");
+
+                        if (finalCompleted.isEmpty()) {
+                            sb.append("No completed courses found.");
+                        } else {
+                            for (Transcript t : finalCompleted) {
+                                String courseLabel = t.getCourse() != null ? t.getCourse().toString() : "Unknown Course";
+                                sb.append("- ").append(courseLabel)
+                                        .append(" | Grade: ").append(t.getGrade() != null ? t.getGrade() : "N/A")
+                                        .append(" | Term: ").append(t.getTerm() != null ? t.getTerm() : "N/A")
+                                        .append("\n");
+                            }
+                        }
+
+                        JTextArea textArea = new JTextArea(sb.toString(), 15, 58);
+                        textArea.setEditable(false);
+                        JOptionPane.showMessageDialog(this, new JScrollPane(textArea),
+                                "Completed Courses", JOptionPane.INFORMATION_MESSAGE);
+                    });
+                } catch (Exception e) {
+                    showAsyncError("Error loading completed courses", e);
+                }
+            }).start();
+        });
+    }
+
+    private void showAdvisingRemainingDialog() {
+        fetchStudentsThen(() -> {
+            Student student = selectStudent("Select student:", "Remaining Courses");
+            if (student == null) {
+                return;
+            }
+
+            new Thread(() -> {
+                try {
+                    List<Course> remaining = ApiClient.getAdvisingRemainingCourses(student.getId());
+                    if (remaining == null) {
+                        remaining = new ArrayList<>();
+                    }
+                    List<Course> finalRemaining = remaining;
+
+                    SwingUtilities.invokeLater(() -> {
+                        StringBuilder sb = new StringBuilder("Remaining Courses for ")
+                                .append(student)
+                                .append(":\n\n");
+
+                        if (finalRemaining.isEmpty()) {
+                            sb.append("No remaining courses found.");
+                        } else {
+                            for (Course c : finalRemaining) {
+                                sb.append("- ").append(c)
+                                        .append(" | Credits: ").append(c.getCredits() != null ? c.getCredits() : "N/A")
+                                        .append("\n");
+                            }
+                        }
+
+                        JTextArea textArea = new JTextArea(sb.toString(), 15, 58);
+                        textArea.setEditable(false);
+                        JOptionPane.showMessageDialog(this, new JScrollPane(textArea),
+                                "Remaining Courses", JOptionPane.INFORMATION_MESSAGE);
+                    });
+                } catch (Exception e) {
+                    showAsyncError("Error loading remaining courses", e);
+                }
+            }).start();
+        });
+    }
+
+    private void showAdvisingPrerequisiteCheckDialog() {
+        fetchStudentsThen(() -> fetchCoursesThen(() -> {
+            Student student = selectStudent("Select student:", "Check Course Eligibility");
+            if (student == null) {
+                return;
+            }
+
+            Course course = selectCourse("Select course:", "Check Course Eligibility");
+            if (course == null) {
+                return;
+            }
+
+            new Thread(() -> {
+                try {
+                    boolean eligible = ApiClient.checkAdvisingPrerequisites(student.getId(), course.getId());
+                    String message = eligible
+                            ? "Eligible: " + student + " can take " + course + "."
+                            : "Not eligible: prerequisites are not fully completed for " + course + ".";
+
+                    SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
+                            message,
+                            "Course Eligibility", eligible ? JOptionPane.INFORMATION_MESSAGE : JOptionPane.WARNING_MESSAGE));
+                } catch (Exception e) {
+                    showAsyncError("Error checking prerequisites", e);
+                }
+            }).start();
+        }));
+    }
+
+    private Student selectStudent(String message, String title) {
+        if (allStudents == null || allStudents.isEmpty()) {
+            JOptionPane.showMessageDialog(this,
+                    "No students available.",
+                    "Info", JOptionPane.INFORMATION_MESSAGE);
+            return null;
+        }
+
+        String[] options = new String[allStudents.size()];
+        for (int i = 0; i < allStudents.size(); i++) {
+            options[i] = allStudents.get(i).toString();
+        }
+
+        int selectedIndex = JOptionPane.showOptionDialog(this,
+                message,
+                title,
+                JOptionPane.DEFAULT_OPTION,
+                JOptionPane.PLAIN_MESSAGE,
+                null,
+                options,
+                options[0]);
+
+        if (selectedIndex < 0) {
+            return null;
+        }
+        return allStudents.get(selectedIndex);
+    }
+
+    private Course selectCourse(String message, String title) {
+        if (allCourses == null || allCourses.isEmpty()) {
+            JOptionPane.showMessageDialog(this,
+                    "No courses available.",
+                    "Info", JOptionPane.INFORMATION_MESSAGE);
+            return null;
+        }
+
+        String[] options = new String[allCourses.size()];
+        for (int i = 0; i < allCourses.size(); i++) {
+            options[i] = allCourses.get(i).toString();
+        }
+
+        int selectedIndex = JOptionPane.showOptionDialog(this,
+                message,
+                title,
+                JOptionPane.DEFAULT_OPTION,
+                JOptionPane.PLAIN_MESSAGE,
+                null,
+                options,
+                options[0]);
+
+        if (selectedIndex < 0) {
+            return null;
+        }
+        return allCourses.get(selectedIndex);
+    }
+
+    private void showAsyncError(String prefix, Exception e) {
+        String errorMsg = e.getMessage() != null ? e.getMessage() : e.toString();
+        SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
+                prefix + ": " + errorMsg,
+                "Error", JOptionPane.ERROR_MESSAGE));
     }
 
     private void fetchReportStudentsThen(Runnable onSuccess) {
