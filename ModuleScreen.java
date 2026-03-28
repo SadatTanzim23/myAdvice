@@ -254,7 +254,19 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
             ActionCard card = new ActionCard(items[i][0], items[i][1]);
 
             // Add click handlers for course management
-            if (items[i][0].equals("Manage Courses")) {
+            if (items[i][0].equals("Browse Course Sections")) {
+                card.setOnClickAction(this::showSchedulingBrowseSectionsDialog);
+            } else if (items[i][0].equals("Build Timetable")) {
+                card.setOnClickAction(this::showSchedulingBuildTimetableDialog);
+            } else if (items[i][0].equals("Check Conflicts")) {
+                card.setOnClickAction(this::showSchedulingCheckConflictsDialog);
+            } else if (items[i][0].equals("View Room Assignments")) {
+                card.setOnClickAction(this::showSchedulingRoomAssignmentsDialog);
+            } else if (items[i][0].equals("Lab & Tutorial Matching")) {
+                card.setOnClickAction(this::showSchedulingLabTutorialMatchingDialog);
+            } else if (items[i][0].equals("Export Schedule")) {
+                card.setOnClickAction(this::showSchedulingExportDialog);
+            } else if (items[i][0].equals("Manage Courses")) {
                 card.setOnClickAction(this::showManageCoursesDialog);
             } else if (items[i][0].equals("Edit Prerequisite Structures")) {
                 card.setOnClickAction(this::showManagePrerequisitesDialog);
@@ -2486,6 +2498,533 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
         }).start();
     }
 
+    // Scheduling module methods
+
+    private void showSchedulingBrowseSectionsDialog() {
+        fetchCoursesThen(this::showSchedulingBrowseSectionsByCourseDialog);
+    }
+
+    private void showSchedulingBrowseSectionsByCourseDialog() {
+        if (allCourses == null || allCourses.isEmpty()) {
+            JOptionPane.showMessageDialog(this,
+                    "No courses found.",
+                    "Browse Course Sections", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+
+        JComboBox<Course> courseCombo = new JComboBox<>(allCourses.toArray(new Course[0]));
+        JPanel panel = new JPanel(new GridLayout(1, 2, 8, 8));
+        panel.setBorder(new EmptyBorder(12, 12, 12, 12));
+        panel.add(new JLabel("Course:"));
+        panel.add(courseCombo);
+
+        int result = JOptionPane.showConfirmDialog(this, panel,
+                "Browse Course Sections",
+                JOptionPane.OK_CANCEL_OPTION,
+                JOptionPane.PLAIN_MESSAGE);
+        if (result != JOptionPane.OK_OPTION) {
+            return;
+        }
+
+        Course selectedCourse = (Course) courseCombo.getSelectedItem();
+        if (selectedCourse == null) {
+            JOptionPane.showMessageDialog(this,
+                    "Please select a course.",
+                    "Validation Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        showFilteredSectionsByCourse(selectedCourse);
+    }
+
+    private void showFilteredSectionsByCourse(Course selectedCourse) {
+        new Thread(() -> {
+            try {
+                List<Section> sections = ApiClient.getAllSections();
+                if (sections == null) {
+                    sections = new ArrayList<>();
+                }
+
+                List<Section> filtered = new ArrayList<>();
+                Long selectedId = selectedCourse.getId();
+                String selectedCode = selectedCourse.getCourseCode() != null
+                        ? selectedCourse.getCourseCode().trim()
+                        : "";
+
+                for (Section s : sections) {
+                    Course c = s != null ? s.getCourse() : null;
+                    if (c == null) continue;
+
+                    boolean idMatch = selectedId != null && c.getId() != null && selectedId.equals(c.getId());
+                    boolean codeMatch = !selectedCode.isEmpty()
+                            && c.getCourseCode() != null
+                            && selectedCode.equalsIgnoreCase(c.getCourseCode().trim());
+
+                    if (idMatch || codeMatch) {
+                        filtered.add(s);
+                    }
+                }
+
+                String courseCode = selectedCourse.getCourseCode() != null
+                        ? selectedCourse.getCourseCode()
+                        : "Selected Course";
+
+                List<Section> finalFiltered = filtered;
+                SwingUtilities.invokeLater(() -> {
+                    StringBuilder sb = new StringBuilder("Sections for ")
+                            .append(courseCode)
+                            .append(":\n\n");
+
+                    if (finalFiltered.isEmpty()) {
+                        sb.append("No sections found for this course.");
+                    } else {
+                        for (Section s : finalFiltered) {
+                            String secNo = s.getSectionNumber() != null ? s.getSectionNumber() : "N/A";
+                            String instructor = s.getInstructorName() != null ? s.getInstructorName() : "N/A";
+                            String day = s.getDayOfWeek() != null ? s.getDayOfWeek() : "N/A";
+                            String room = (s.getRoom() != null && !s.getRoom().isBlank()) ? s.getRoom() : "N/A";
+                            String labDay = (s.getLabDayOfWeek() != null && !s.getLabDayOfWeek().isBlank()) ? s.getLabDayOfWeek() : "N/A";
+                            String labTime = (s.getLabTime() != null && !s.getLabTime().isBlank()) ? s.getLabTime() : "N/A";
+
+                            sb.append("- Sec ").append(secNo)
+                                    .append(" | ").append(instructor)
+                                    .append(" | ").append(day)
+                                    .append(" | Room: ").append(room)
+                                    .append(" | Lab: ").append(labDay).append(" ").append(labTime)
+                                    .append("\n");
+                        }
+                    }
+
+                    JTextArea textArea = new JTextArea(sb.toString(), 18, 55);
+                    textArea.setEditable(false);
+                    textArea.setLineWrap(true);
+                    textArea.setWrapStyleWord(true);
+
+                    JOptionPane.showMessageDialog(this,
+                            new JScrollPane(textArea),
+                            "Browse Course Sections",
+                            JOptionPane.INFORMATION_MESSAGE);
+                });
+            } catch (Exception e) {
+                String errorMsg = e.getMessage() != null ? e.getMessage() : e.toString();
+                SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
+                        "Error loading sections: " + errorMsg,
+                        "Error", JOptionPane.ERROR_MESSAGE));
+            }
+        }).start();
+    }
+
+    private void showSchedulingBuildTimetableDialog() {
+        String[] options = {"All Schedules", "By Course", "By Day", "Cancel"};
+        int choice = JOptionPane.showOptionDialog(this,
+                "Choose how to view timetable data:",
+                "Build Timetable",
+                JOptionPane.DEFAULT_OPTION,
+                JOptionPane.PLAIN_MESSAGE,
+                null,
+                options,
+                options[0]);
+
+        if (choice < 0 || choice == 3) {
+            return;
+        }
+
+        if (choice == 1) {
+            fetchCoursesThen(this::showSchedulingCourseTimetableDialog);
+            return;
+        }
+
+        if (choice == 2) {
+            showSchedulingDayTimetableDialog();
+            return;
+        }
+
+        new Thread(() -> {
+            try {
+                List<Schedule> schedules = ApiClient.getAllSchedules();
+                SwingUtilities.invokeLater(() -> showScheduleResultsDialog(
+                        schedules,
+                        "All Schedules",
+                        "Timetable"
+                ));
+            } catch (Exception e) {
+                String errorMsg = e.getMessage() != null ? e.getMessage() : e.toString();
+                SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
+                        "Error loading timetable: " + errorMsg,
+                        "Error", JOptionPane.ERROR_MESSAGE));
+            }
+        }).start();
+    }
+
+    private void showSchedulingCourseTimetableDialog() {
+        if (allCourses == null || allCourses.isEmpty()) {
+            JOptionPane.showMessageDialog(this,
+                    "No courses found.",
+                    "Build Timetable", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+
+        JComboBox<Course> courseCombo = new JComboBox<>(allCourses.toArray(new Course[0]));
+        JPanel panel = new JPanel(new GridLayout(1, 2, 8, 8));
+        panel.setBorder(new EmptyBorder(12, 12, 12, 12));
+        panel.add(new JLabel("Course:"));
+        panel.add(courseCombo);
+
+        int result = JOptionPane.showConfirmDialog(this, panel,
+                "Build Timetable (By Course)",
+                JOptionPane.OK_CANCEL_OPTION,
+                JOptionPane.PLAIN_MESSAGE);
+        if (result != JOptionPane.OK_OPTION) {
+            return;
+        }
+
+        Course selected = (Course) courseCombo.getSelectedItem();
+        if (selected == null || selected.getId() == null) {
+            JOptionPane.showMessageDialog(this,
+                    "Please select a valid course.",
+                    "Validation Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        new Thread(() -> {
+            try {
+                List<Schedule> schedules = ApiClient.getCourseSchedules(selected.getId());
+                String code = selected.getCourseCode() != null ? selected.getCourseCode() : "Course";
+                SwingUtilities.invokeLater(() -> showScheduleResultsDialog(
+                        schedules,
+                        "Timetable for " + code,
+                        "Course Timetable"
+                ));
+            } catch (Exception e) {
+                String errorMsg = e.getMessage() != null ? e.getMessage() : e.toString();
+                SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
+                        "Error loading course timetable: " + errorMsg,
+                        "Error", JOptionPane.ERROR_MESSAGE));
+            }
+        }).start();
+    }
+
+    private void showSchedulingDayTimetableDialog() {
+        String[] days = {"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"};
+        int selectedIndex = JOptionPane.showOptionDialog(this,
+                "Select day:",
+                "Build Timetable (By Day)",
+                JOptionPane.DEFAULT_OPTION,
+                JOptionPane.PLAIN_MESSAGE,
+                null,
+                days,
+                days[0]);
+        if (selectedIndex < 0) {
+            return;
+        }
+
+        String selectedDay = days[selectedIndex];
+        new Thread(() -> {
+            try {
+                List<Schedule> schedules = ApiClient.getSchedulesByDay(selectedDay);
+                SwingUtilities.invokeLater(() -> showScheduleResultsDialog(
+                        schedules,
+                        "Timetable for " + selectedDay,
+                        "Day Timetable"
+                ));
+            } catch (Exception e) {
+                String errorMsg = e.getMessage() != null ? e.getMessage() : e.toString();
+                SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
+                        "Error loading schedules by day: " + errorMsg,
+                        "Error", JOptionPane.ERROR_MESSAGE));
+            }
+        }).start();
+    }
+
+    private void showSchedulingCheckConflictsDialog() {
+        new Thread(() -> {
+            try {
+                List<Schedule> schedules = ApiClient.getAllSchedules();
+                if (schedules == null || schedules.size() < 2) {
+                    SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
+                            "At least two schedules are required to check conflicts.",
+                            "Check Conflicts", JOptionPane.INFORMATION_MESSAGE));
+                    return;
+                }
+
+                SwingUtilities.invokeLater(() -> {
+                    String[] options = toScheduleOptions(schedules);
+
+                    int firstIndex = JOptionPane.showOptionDialog(this,
+                            "Select first schedule:",
+                            "Check Conflicts",
+                            JOptionPane.DEFAULT_OPTION,
+                            JOptionPane.PLAIN_MESSAGE,
+                            null,
+                            options,
+                            options[0]);
+                    if (firstIndex < 0) return;
+
+                    int secondIndex = JOptionPane.showOptionDialog(this,
+                            "Select second schedule:",
+                            "Check Conflicts",
+                            JOptionPane.DEFAULT_OPTION,
+                            JOptionPane.PLAIN_MESSAGE,
+                            null,
+                            options,
+                            options[0]);
+                    if (secondIndex < 0) return;
+
+                    if (firstIndex == secondIndex) {
+                        JOptionPane.showMessageDialog(this,
+                                "Please choose two different schedules.",
+                                "Validation Error", JOptionPane.ERROR_MESSAGE);
+                        return;
+                    }
+
+                    Schedule s1 = schedules.get(firstIndex);
+                    Schedule s2 = schedules.get(secondIndex);
+                    if (s1.getId() == null || s2.getId() == null) {
+                        JOptionPane.showMessageDialog(this,
+                                "Selected schedule is missing an ID.",
+                                "Validation Error", JOptionPane.ERROR_MESSAGE);
+                        return;
+                    }
+
+                    new Thread(() -> {
+                        try {
+                            boolean conflict = ApiClient.checkScheduleConflict(s1.getId(), s2.getId());
+                            String message = conflict
+                                    ? "Conflict detected between selected schedules."
+                                    : "No conflict found between selected schedules.";
+                            SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
+                                    message,
+                                    "Check Conflicts",
+                                    conflict ? JOptionPane.WARNING_MESSAGE : JOptionPane.INFORMATION_MESSAGE));
+                        } catch (Exception e) {
+                            String errorMsg = e.getMessage() != null ? e.getMessage() : e.toString();
+                            SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
+                                    "Error checking conflict: " + errorMsg,
+                                    "Error", JOptionPane.ERROR_MESSAGE));
+                        }
+                    }).start();
+                });
+            } catch (Exception e) {
+                String errorMsg = e.getMessage() != null ? e.getMessage() : e.toString();
+                SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
+                        "Error loading schedules: " + errorMsg,
+                        "Error", JOptionPane.ERROR_MESSAGE));
+            }
+        }).start();
+    }
+
+    private void showSchedulingRoomAssignmentsDialog() {
+        new Thread(() -> {
+            try {
+                List<Section> sections = ApiClient.getAllSections();
+                if (sections == null || sections.isEmpty()) {
+                    SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
+                            "No room assignments found.",
+                            "Room Assignments", JOptionPane.INFORMATION_MESSAGE));
+                    return;
+                }
+
+                SwingUtilities.invokeLater(() -> {
+                    JComboBox<Section> sectionCombo = new JComboBox<>(sections.toArray(new Section[0]));
+                    JPanel panel = new JPanel(new GridLayout(1, 2, 8, 8));
+                    panel.setBorder(new EmptyBorder(12, 12, 12, 12));
+                    panel.add(new JLabel("Section:"));
+                    panel.add(sectionCombo);
+
+                    int selection = JOptionPane.showConfirmDialog(this,
+                            panel,
+                            "View Room Assignments",
+                            JOptionPane.OK_CANCEL_OPTION,
+                            JOptionPane.PLAIN_MESSAGE);
+
+                    if (selection != JOptionPane.OK_OPTION) {
+                        return;
+                    }
+
+                    Section selected = (Section) sectionCombo.getSelectedItem();
+                    if (selected == null) {
+                        JOptionPane.showMessageDialog(this,
+                                "Please select a section.",
+                                "Validation Error",
+                                JOptionPane.ERROR_MESSAGE);
+                        return;
+                    }
+
+                    String courseCode = (selected.getCourse() != null && selected.getCourse().getCourseCode() != null)
+                            ? selected.getCourse().getCourseCode() : "N/A";
+                    String sectionNo = selected.getSectionNumber() != null ? selected.getSectionNumber() : "N/A";
+                    String room = (selected.getRoom() != null && !selected.getRoom().isBlank()) ? selected.getRoom() : "N/A";
+                    String day = selected.getDayOfWeek() != null ? selected.getDayOfWeek() : "N/A";
+                    String labDay = (selected.getLabDayOfWeek() != null && !selected.getLabDayOfWeek().isBlank()) ? selected.getLabDayOfWeek() : "N/A";
+                    String labTime = (selected.getLabTime() != null && !selected.getLabTime().isBlank()) ? selected.getLabTime() : "N/A";
+
+                    StringBuilder sb = new StringBuilder("Room Assignment:\n\n")
+                            .append("Course: ").append(courseCode).append("\n")
+                            .append("Section: ").append(sectionNo).append("\n")
+                            .append("Room: ").append(room).append("\n")
+                            .append("Day(s): ").append(day).append("\n")
+                            .append("Lab: ").append(labDay).append(" ").append(labTime);
+
+                    JOptionPane.showMessageDialog(this,
+                            sb.toString(),
+                            "Room Assignments",
+                            JOptionPane.INFORMATION_MESSAGE);
+                });
+            } catch (Exception e) {
+                String errorMsg = e.getMessage() != null ? e.getMessage() : e.toString();
+                SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
+                        "Error loading room assignments: " + errorMsg,
+                        "Error", JOptionPane.ERROR_MESSAGE));
+            }
+        }).start();
+    }
+
+    private void showSchedulingLabTutorialMatchingDialog() {
+        fetchCoursesThen(() -> {
+            if (allCourses == null || allCourses.isEmpty()) {
+                JOptionPane.showMessageDialog(this,
+                        "No courses found.",
+                        "Lab & Tutorial Matching", JOptionPane.INFORMATION_MESSAGE);
+                return;
+            }
+
+            JComboBox<Course> courseCombo = new JComboBox<>(allCourses.toArray(new Course[0]));
+            JPanel panel = new JPanel(new GridLayout(1, 2, 8, 8));
+            panel.setBorder(new EmptyBorder(12, 12, 12, 12));
+            panel.add(new JLabel("Course:"));
+            panel.add(courseCombo);
+
+            int result = JOptionPane.showConfirmDialog(this, panel,
+                    "Lab & Tutorial Matching",
+                    JOptionPane.OK_CANCEL_OPTION,
+                    JOptionPane.PLAIN_MESSAGE);
+            if (result != JOptionPane.OK_OPTION) {
+                return;
+            }
+
+            Course selected = (Course) courseCombo.getSelectedItem();
+            if (selected == null || selected.getId() == null) {
+                JOptionPane.showMessageDialog(this,
+                        "Please select a valid course.",
+                        "Validation Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            new Thread(() -> {
+                try {
+                    List<Schedule> schedules = ApiClient.getCourseSchedules(selected.getId());
+                    String courseCode = selected.getCourseCode() != null ? selected.getCourseCode() : "Course";
+                    SwingUtilities.invokeLater(() -> showScheduleResultsDialog(
+                            schedules,
+                            "Schedules for " + courseCode + " (use these to pair lectures/labs/tutorials)",
+                            "Lab & Tutorial Matching"
+                    ));
+                } catch (Exception e) {
+                    String errorMsg = e.getMessage() != null ? e.getMessage() : e.toString();
+                    SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
+                            "Error loading course schedules: " + errorMsg,
+                            "Error", JOptionPane.ERROR_MESSAGE));
+                }
+            }).start();
+        });
+    }
+
+    private void showSchedulingExportDialog() {
+        new Thread(() -> {
+            try {
+                List<Schedule> schedules = ApiClient.getAllSchedules();
+                if (schedules == null || schedules.isEmpty()) {
+                    SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
+                            "No schedules to export.",
+                            "Export Schedule", JOptionPane.INFORMATION_MESSAGE));
+                    return;
+                }
+
+                String exportContent = buildScheduleReportText("Exported Schedule", schedules);
+                SwingUtilities.invokeLater(() -> {
+                    JFileChooser chooser = new JFileChooser();
+                    chooser.setDialogTitle("Export Schedule");
+                    chooser.setSelectedFile(new java.io.File("myadvice-schedule.txt"));
+                    int result = chooser.showSaveDialog(this);
+                    if (result != JFileChooser.APPROVE_OPTION) {
+                        return;
+                    }
+
+                    java.io.File file = chooser.getSelectedFile();
+                    try {
+                        java.nio.file.Files.writeString(
+                                file.toPath(),
+                                exportContent,
+                                java.nio.charset.StandardCharsets.UTF_8
+                        );
+                        JOptionPane.showMessageDialog(this,
+                                "Schedule exported to: " + file.getAbsolutePath(),
+                                "Export Complete", JOptionPane.INFORMATION_MESSAGE);
+                    } catch (Exception writeEx) {
+                        String errorMsg = writeEx.getMessage() != null ? writeEx.getMessage() : writeEx.toString();
+                        JOptionPane.showMessageDialog(this,
+                                "Failed to export schedule: " + errorMsg,
+                                "Error", JOptionPane.ERROR_MESSAGE);
+                    }
+                });
+            } catch (Exception e) {
+                String errorMsg = e.getMessage() != null ? e.getMessage() : e.toString();
+                SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
+                        "Error loading schedules for export: " + errorMsg,
+                        "Error", JOptionPane.ERROR_MESSAGE));
+            }
+        }).start();
+    }
+
+    private String[] toScheduleOptions(List<Schedule> schedules) {
+        String[] options = new String[schedules.size()];
+        for (int i = 0; i < schedules.size(); i++) {
+            Schedule s = schedules.get(i);
+            String courseCode = (s.getCourse() != null && s.getCourse().getCourseCode() != null)
+                    ? s.getCourse().getCourseCode() : "N/A";
+            options[i] = "ID " + (s.getId() != null ? s.getId() : "-")
+                    + " | " + courseCode
+                    + " | " + (s.getDayOfWeek() != null ? s.getDayOfWeek() : "N/A")
+                    + " " + (s.getStartTime() != null ? s.getStartTime() : "N/A")
+                    + "-" + (s.getEndTime() != null ? s.getEndTime() : "N/A");
+        }
+        return options;
+    }
+
+    private String buildScheduleReportText(String heading, List<Schedule> schedules) {
+        StringBuilder sb = new StringBuilder(heading).append("\n\n");
+        if (schedules == null || schedules.isEmpty()) {
+            sb.append("No schedules found.");
+            return sb.toString();
+        }
+
+        for (Schedule s : schedules) {
+            String courseCode = (s.getCourse() != null && s.getCourse().getCourseCode() != null)
+                    ? s.getCourse().getCourseCode() : "N/A";
+            sb.append("- ID: ").append(s.getId() != null ? s.getId() : "-")
+                    .append(" | Course: ").append(courseCode)
+                    .append(" | Day: ").append(s.getDayOfWeek() != null ? s.getDayOfWeek() : "N/A")
+                    .append(" | Time: ").append(s.getStartTime() != null ? s.getStartTime() : "N/A")
+                    .append("-").append(s.getEndTime() != null ? s.getEndTime() : "N/A")
+                    .append(" | Room: ").append(s.getRoomNumber() != null ? s.getRoomNumber() : "N/A")
+                    .append(" | Term: ").append(s.getTerm() != null ? s.getTerm() : "N/A")
+                    .append("\n");
+        }
+        return sb.toString();
+    }
+
+    private void showScheduleResultsDialog(List<Schedule> schedules, String heading, String title) {
+        String content = buildScheduleReportText(heading, schedules);
+        JTextArea textArea = new JTextArea(content, 16, 60);
+        textArea.setEditable(false);
+        textArea.setLineWrap(true);
+        textArea.setWrapStyleWord(true);
+        JOptionPane.showMessageDialog(this,
+                new JScrollPane(textArea),
+                title,
+                JOptionPane.INFORMATION_MESSAGE);
+    }
+
     // Section methods
 
     // Show main Section management dialog
@@ -2534,11 +3073,16 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
                             String secNo = s.getSectionNumber() != null ? s.getSectionNumber() : "N/A";
                             String instructor = s.getInstructorName() != null ? s.getInstructorName() : "N/A";
                             String day = s.getDayOfWeek() != null ? s.getDayOfWeek() : "N/A";
+                            String room = (s.getRoom() != null && !s.getRoom().isBlank()) ? s.getRoom() : "N/A";
+                            String labDay = (s.getLabDayOfWeek() != null && !s.getLabDayOfWeek().isBlank()) ? s.getLabDayOfWeek() : "N/A";
+                            String labTime = (s.getLabTime() != null && !s.getLabTime().isBlank()) ? s.getLabTime() : "N/A";
 
                             sb.append("- ")
                                     .append(courseCode).append(" | Sec ").append(secNo)
                                     .append(" | ").append(instructor)
                                     .append(" | ").append(day)
+                                    .append(" | Room: ").append(room)
+                                    .append(" | Lab: ").append(labDay).append(" ").append(labTime)
                                     .append("\n");
                         }
                     }
@@ -2589,9 +3133,12 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
         JTextField capacityField = new JTextField();
         JTextField enrolledField = new JTextField("0");
         JTextField instructorField = new JTextField();
+        JTextField roomField = new JTextField();
         JList<String> dayList = new JList<>(new String[]{"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"});
         dayList.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
         JScrollPane dayScrollPane = new JScrollPane(dayList);
+        JComboBox<String> labDayCombo = new JComboBox<>(new String[]{"", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"});
+        JTextField labTimeField = new JTextField();
 
         Dimension inputSize = new Dimension(220, 26);
         courseCombo.setPreferredSize(inputSize);
@@ -2600,7 +3147,10 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
         capacityField.setPreferredSize(inputSize);
         enrolledField.setPreferredSize(inputSize);
         instructorField.setPreferredSize(inputSize);
+        roomField.setPreferredSize(inputSize);
         dayScrollPane.setPreferredSize(new Dimension(220, 90));
+        labDayCombo.setPreferredSize(inputSize);
+        labTimeField.setPreferredSize(inputSize);
 
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(6, 6, 6, 6);
@@ -2625,8 +3175,17 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
         gbc.gridx = 0; gbc.gridy = 5; panel.add(new JLabel("Instructor Name:"), gbc);
         gbc.gridx = 1; panel.add(instructorField, gbc);
 
-        gbc.gridx = 0; gbc.gridy = 6; panel.add(new JLabel("Day(s):"), gbc);
+        gbc.gridx = 0; gbc.gridy = 6; panel.add(new JLabel("Room:"), gbc);
+        gbc.gridx = 1; panel.add(roomField, gbc);
+
+        gbc.gridx = 0; gbc.gridy = 7; panel.add(new JLabel("Day(s):"), gbc);
         gbc.gridx = 1; panel.add(dayScrollPane, gbc);
+
+        gbc.gridx = 0; gbc.gridy = 8; panel.add(new JLabel("Lab Day:"), gbc);
+        gbc.gridx = 1; panel.add(labDayCombo, gbc);
+
+        gbc.gridx = 0; gbc.gridy = 9; panel.add(new JLabel("Lab Time (HH:mm-HH:mm):"), gbc);
+        gbc.gridx = 1; panel.add(labTimeField, gbc);
 
         // Confirmation button for adding the section
         int result = JOptionPane.showConfirmDialog(this, panel, "Add Section",
@@ -2641,14 +3200,25 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
         String capacityStr = capacityField.getText().trim();
         String enrolledStr = enrolledField.getText().trim();
         String instructorName = instructorField.getText().trim();
+        String room = roomField.getText().trim();
         List<String> selectedDays = dayList.getSelectedValuesList();
         String dayOfWeek = String.join(", ", selectedDays);
+        String labDayOfWeek = labDayCombo.getSelectedItem() != null ? labDayCombo.getSelectedItem().toString().trim() : "";
+        String labTime = labTimeField.getText().trim();
 
         if (selectedCourse == null || selectedFaculty == null || sectionNumber.isEmpty()
                 || capacityStr.isEmpty() || enrolledStr.isEmpty()
                 || instructorName.isEmpty() || selectedDays.isEmpty()) {
             JOptionPane.showMessageDialog(this,
                     "Please fill in all fields and select at least one day.",
+                    "Validation Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        // Lab fields are optional, but if one is provided both are required.
+        if ((labDayOfWeek.isEmpty() && !labTime.isEmpty()) || (!labDayOfWeek.isEmpty() && labTime.isEmpty())) {
+            JOptionPane.showMessageDialog(this,
+                    "Please provide both Lab Day and Lab Time, or leave both empty.",
                     "Validation Error", JOptionPane.ERROR_MESSAGE);
             return;
         }
@@ -2672,14 +3242,21 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
             newSection.setCapacity(capacity);
             newSection.setEnrolledCount(enrolled);
             newSection.setInstructorName(instructorName);
+            newSection.setRoom(room.isEmpty() ? null : room);
             newSection.setDayOfWeek(dayOfWeek);
+            newSection.setLabDayOfWeek(labDayOfWeek.isEmpty() ? null : labDayOfWeek);
+            newSection.setLabTime(labTime.isEmpty() ? null : labTime);
 
             new Thread(() -> {
                 try {
-                    ApiClient.addSection(newSection);
+                    Section savedSection = ApiClient.addSection(newSection);
                     SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
-                            "Section added successfully.",
+                            "Section added successfully.\n"
+                                    + "Room: " + (savedSection.getRoom() != null ? savedSection.getRoom() : "N/A") + "\n"
+                                    + "Lab Day: " + (savedSection.getLabDayOfWeek() != null ? savedSection.getLabDayOfWeek() : "N/A") + "\n"
+                                    + "Lab Time: " + (savedSection.getLabTime() != null ? savedSection.getLabTime() : "N/A"),
                             "Success", JOptionPane.INFORMATION_MESSAGE));
+                    SwingUtilities.invokeLater(this::showListSectionsDialog);
                 } catch (Exception e) {
                     String errorMsg = e.getMessage() != null ? e.getMessage() : e.toString();
                     SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
@@ -2764,9 +3341,12 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
         JTextField capacityField = new JTextField(selectedSection.getCapacity() != null ? String.valueOf(selectedSection.getCapacity()) : "");
         JTextField enrolledField = new JTextField(selectedSection.getEnrolledCount() != null ? String.valueOf(selectedSection.getEnrolledCount()) : "0");
         JTextField instructorField = new JTextField(selectedSection.getInstructorName() != null ? selectedSection.getInstructorName() : "");
+        JTextField roomField = new JTextField(selectedSection.getRoom() != null ? selectedSection.getRoom() : "");
         JList<String> dayList = new JList<>(new String[]{"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"});
         dayList.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
         JScrollPane dayScrollPane = new JScrollPane(dayList);
+        JComboBox<String> labDayCombo = new JComboBox<>(new String[]{"", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"});
+        JTextField labTimeField = new JTextField(selectedSection.getLabTime() != null ? selectedSection.getLabTime() : "");
 
         // Get current course selected in the combobox
         if (selectedSection.getCourse() != null && selectedSection.getCourse().getId() != null) {
@@ -2806,7 +3386,14 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
         capacityField.setPreferredSize(inputSize);
         enrolledField.setPreferredSize(inputSize);
         instructorField.setPreferredSize(inputSize);
+        roomField.setPreferredSize(inputSize);
         dayScrollPane.setPreferredSize(new Dimension(220, 90));
+        labDayCombo.setPreferredSize(inputSize);
+        labTimeField.setPreferredSize(inputSize);
+
+        if (selectedSection.getLabDayOfWeek() != null && !selectedSection.getLabDayOfWeek().isBlank()) {
+            labDayCombo.setSelectedItem(selectedSection.getLabDayOfWeek().trim());
+        }
 
         if (selectedSection.getFaculty() != null && selectedSection.getFaculty().getId() != null) {
             for (int i = 0; i < facultyCombo.getItemCount(); i++) {
@@ -2836,8 +3423,16 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
         gbc.gridx = 1; panel.add(enrolledField, gbc);
         gbc.gridx = 0; gbc.gridy = 5; panel.add(new JLabel("Instructor Name:"), gbc);
         gbc.gridx = 1; panel.add(instructorField, gbc);
-        gbc.gridx = 0; gbc.gridy = 6; panel.add(new JLabel("Day(s):"), gbc);
+        gbc.gridx = 0; gbc.gridy = 6; panel.add(new JLabel("Room:"), gbc);
+        gbc.gridx = 1; panel.add(roomField, gbc);
+        gbc.gridx = 0; gbc.gridy = 7; panel.add(new JLabel("Day(s):"), gbc);
         gbc.gridx = 1; panel.add(dayScrollPane, gbc);
+
+        gbc.gridx = 0; gbc.gridy = 8; panel.add(new JLabel("Lab Day:"), gbc);
+        gbc.gridx = 1; panel.add(labDayCombo, gbc);
+
+        gbc.gridx = 0; gbc.gridy = 9; panel.add(new JLabel("Lab Time (HH:mm-HH:mm):"), gbc);
+        gbc.gridx = 1; panel.add(labTimeField, gbc);
 
         // Confirmation button for editing the section
         int result = JOptionPane.showConfirmDialog(this, panel, "Confirm Edit",
@@ -2851,14 +3446,24 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
         String capacityStr = capacityField.getText().trim();
         String enrolledStr = enrolledField.getText().trim();
         String instructorName = instructorField.getText().trim();
+        String room = roomField.getText().trim();
         List<String> selectedDays = dayList.getSelectedValuesList();
         String dayOfWeek = String.join(", ", selectedDays);
+        String labDayOfWeek = labDayCombo.getSelectedItem() != null ? labDayCombo.getSelectedItem().toString().trim() : "";
+        String labTime = labTimeField.getText().trim();
 
         // Handle validation/empty errors
         if (selectedCourse == null || selectedFaculty == null || sectionNumber.isEmpty()
                 || capacityStr.isEmpty() || enrolledStr.isEmpty() || instructorName.isEmpty() || selectedDays.isEmpty()) {
             JOptionPane.showMessageDialog(this,
                     "Please fill in all fields and select at least one day.",
+                    "Validation Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        if ((labDayOfWeek.isEmpty() && !labTime.isEmpty()) || (!labDayOfWeek.isEmpty() && labTime.isEmpty())) {
+            JOptionPane.showMessageDialog(this,
+                    "Please provide both Lab Day and Lab Time, or leave both empty.",
                     "Validation Error", JOptionPane.ERROR_MESSAGE);
             return;
         }
@@ -2881,14 +3486,21 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
             updated.setCapacity(capacity);
             updated.setEnrolledCount(enrolled);
             updated.setInstructorName(instructorName);
+            updated.setRoom(room.isEmpty() ? null : room);
             updated.setDayOfWeek(dayOfWeek);
+            updated.setLabDayOfWeek(labDayOfWeek.isEmpty() ? null : labDayOfWeek);
+            updated.setLabTime(labTime.isEmpty() ? null : labTime);
 
             new Thread(() -> {
                 try {
-                    ApiClient.editSection(selectedSection.getId(), updated);
+                    Section savedSection = ApiClient.editSection(selectedSection.getId(), updated);
                     SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
-                            "Section updated successfully.",
+                            "Section updated successfully.\n"
+                                    + "Room: " + (savedSection.getRoom() != null ? savedSection.getRoom() : "N/A") + "\n"
+                                    + "Lab Day: " + (savedSection.getLabDayOfWeek() != null ? savedSection.getLabDayOfWeek() : "N/A") + "\n"
+                                    + "Lab Time: " + (savedSection.getLabTime() != null ? savedSection.getLabTime() : "N/A"),
                             "Success", JOptionPane.INFORMATION_MESSAGE));
+                    SwingUtilities.invokeLater(this::showListSectionsDialog);
                 } catch (Exception e) {
                     String errorMsg = e.getMessage() != null ? e.getMessage() : e.toString();
                     SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
