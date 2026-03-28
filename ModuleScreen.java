@@ -641,8 +641,72 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
             return;
         }
 
-        StringBuilder sb = new StringBuilder("Faculty List:\n\n");
+        String[] options = {"Search by Name", "View All", "Cancel"};
+        int choice = JOptionPane.showOptionDialog(
+                this,
+                "Choose how to view faculty:",
+                "Faculty List",
+                JOptionPane.DEFAULT_OPTION,
+                JOptionPane.PLAIN_MESSAGE,
+                null,
+                options,
+                options[0]
+        );
+
+        if (choice == 1) {
+            showFacultyResultsDialog(allFaculty, "Faculty");
+            return;
+        }
+
+        if (choice != 0) {
+            return;
+        }
+
+        String query = JOptionPane.showInputDialog(
+                this,
+                "Enter faculty name to search:",
+                "Faculty Search",
+                JOptionPane.PLAIN_MESSAGE
+        );
+
+        if (query == null) {
+            return;
+        }
+
+        String normalizedQuery = query.trim().toLowerCase();
+        if (normalizedQuery.isEmpty()) {
+            JOptionPane.showMessageDialog(this,
+                    "Please enter a full first name, last name, or full name.",
+                    "Search Results", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+
+        List<Faculty> filteredFaculty = new ArrayList<>();
         for (Faculty f : allFaculty) {
+            String firstName = f.getFirstName() != null ? f.getFirstName().trim().toLowerCase() : "";
+            String lastName = f.getLastName() != null ? f.getLastName().trim().toLowerCase() : "";
+            String fullName = (firstName + " " + lastName).trim();
+
+            if (fullName.equals(normalizedQuery)
+                    || firstName.equals(normalizedQuery)
+                    || lastName.equals(normalizedQuery)) {
+                filteredFaculty.add(f);
+            }
+        }
+
+        if (filteredFaculty.isEmpty()) {
+            JOptionPane.showMessageDialog(this,
+                    "No faculty matched your search.",
+                    "Search Results", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+
+        showFacultyResultsDialog(filteredFaculty, "Search Results");
+    }
+
+    private void showFacultyResultsDialog(List<Faculty> faculty, String title) {
+        StringBuilder sb = new StringBuilder("Faculty List:\n\n");
+        for (Faculty f : faculty) {
             sb.append("- ")
                     .append(f.getFirstName()).append(" ").append(f.getLastName())
                     .append(" | ").append(f.getEmail())
@@ -653,7 +717,7 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
         JTextArea textArea = new JTextArea(sb.toString(), 16, 50);
         textArea.setEditable(false);
         JOptionPane.showMessageDialog(this, new JScrollPane(textArea),
-                "Faculty", JOptionPane.INFORMATION_MESSAGE);
+                title, JOptionPane.INFORMATION_MESSAGE);
     }
 
     private void showEditFacultyDialog() {
