@@ -2878,14 +2878,13 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
                             String instructor = s.getInstructorName() != null ? s.getInstructorName() : "N/A";
                             String day = s.getDayOfWeek() != null ? s.getDayOfWeek() : "N/A";
                             String room = (s.getRoom() != null && !s.getRoom().isBlank()) ? s.getRoom() : "N/A";
-                            String labDay = (s.getLabDayOfWeek() != null && !s.getLabDayOfWeek().isBlank()) ? s.getLabDayOfWeek() : "N/A";
-                            String labTime = (s.getLabTime() != null && !s.getLabTime().isBlank()) ? s.getLabTime() : "N/A";
+                            String labEntries = formatLabEntriesForDisplay(s);
 
                             sb.append("- Sec ").append(secNo)
                                     .append(" | ").append(instructor)
                                     .append(" | ").append(day)
                                     .append(" | Room: ").append(room)
-                                    .append(" | Lab: ").append(labDay).append(" ").append(labTime)
+                                    .append(" | Labs: ").append(labEntries)
                                     .append("\n");
                         }
                     }
@@ -3320,6 +3319,96 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
                 JOptionPane.INFORMATION_MESSAGE);
     }
 
+    private String formatLabEntriesForDisplay(Section section) {
+        if (section == null) return "None";
+
+        String labDaysRaw = section.getLabDayOfWeek();
+        String labTimesRaw = section.getLabTime();
+        if (labDaysRaw == null || labDaysRaw.isBlank() || labTimesRaw == null || labTimesRaw.isBlank()) {
+            return "None";
+        }
+
+        String[] days = java.util.Arrays.stream(labDaysRaw.split(","))
+                .map(String::trim)
+                .filter(v -> !v.isEmpty())
+                .toArray(String[]::new);
+        String[] times = java.util.Arrays.stream(labTimesRaw.split(";"))
+                .map(String::trim)
+                .filter(v -> !v.isEmpty())
+                .toArray(String[]::new);
+
+        if (days.length == 0 || times.length == 0) {
+            return "None";
+        }
+
+        int pairCount = Math.min(days.length, times.length);
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < pairCount; i++) {
+            if (i > 0) sb.append("; ");
+            sb.append(days[i]).append(" ").append(times[i]);
+        }
+
+        if (days.length > pairCount) {
+            for (int i = pairCount; i < days.length; i++) {
+                if (sb.length() > 0) sb.append("; ");
+                sb.append(days[i]);
+            }
+        } else if (times.length > pairCount) {
+            for (int i = pairCount; i < times.length; i++) {
+                if (sb.length() > 0) sb.append("; ");
+                sb.append(times[i]);
+            }
+        }
+
+        return sb.length() == 0 ? "None" : sb.toString();
+    }
+
+    private boolean isValidLabTimeRange(String value) {
+        if (value == null) return false;
+        String v = value.trim();
+        if (!v.matches("\\d{2}:\\d{2}-\\d{2}:\\d{2}")) {
+            return false;
+        }
+        try {
+            String[] parts = v.split("-");
+            LocalTime start = LocalTime.parse(parts[0]);
+            LocalTime end = LocalTime.parse(parts[1]);
+            return end.isAfter(start);
+        } catch (Exception ex) {
+            return false;
+        }
+    }
+
+    private void promptAndAddLabEntry(DefaultListModel<String> labEntryModel) {
+        JPanel panel = new JPanel(new GridLayout(2, 2, 8, 8));
+        panel.setBorder(new EmptyBorder(12, 12, 12, 12));
+        JComboBox<String> dayCombo = new JComboBox<>(new String[]{"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"});
+        JTextField timeField = new JTextField("10:00-11:00");
+        panel.add(new JLabel("Lab Day:"));
+        panel.add(dayCombo);
+        panel.add(new JLabel("Lab Time (HH:mm-HH:mm):"));
+        panel.add(timeField);
+
+        int result = JOptionPane.showConfirmDialog(this, panel,
+                "Add Lab Entry",
+                JOptionPane.OK_CANCEL_OPTION,
+                JOptionPane.PLAIN_MESSAGE);
+        if (result != JOptionPane.OK_OPTION) {
+            return;
+        }
+
+        String day = dayCombo.getSelectedItem() != null ? dayCombo.getSelectedItem().toString().trim() : "";
+        String time = timeField.getText().trim();
+        if (day.isEmpty() || !isValidLabTimeRange(time)) {
+            JOptionPane.showMessageDialog(this,
+                    "Enter lab time as HH:mm-HH:mm with end time after start time.",
+                    "Validation Error",
+                    JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        labEntryModel.addElement(day + " | " + time);
+    }
+
     // Section methods
 
     // Show main Section management dialog
@@ -3369,15 +3458,14 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
                             String instructor = s.getInstructorName() != null ? s.getInstructorName() : "N/A";
                             String day = s.getDayOfWeek() != null ? s.getDayOfWeek() : "N/A";
                             String room = (s.getRoom() != null && !s.getRoom().isBlank()) ? s.getRoom() : "N/A";
-                            String labDay = (s.getLabDayOfWeek() != null && !s.getLabDayOfWeek().isBlank()) ? s.getLabDayOfWeek() : "N/A";
-                            String labTime = (s.getLabTime() != null && !s.getLabTime().isBlank()) ? s.getLabTime() : "N/A";
+                            String labEntries = formatLabEntriesForDisplay(s);
 
                             sb.append("- ")
                                     .append(courseCode).append(" | Sec ").append(secNo)
                                     .append(" | ").append(instructor)
                                     .append(" | ").append(day)
                                     .append(" | Room: ").append(room)
-                                    .append(" | Lab: ").append(labDay).append(" ").append(labTime)
+                                    .append(" | Labs: ").append(labEntries)
                                     .append("\n");
                         }
                     }
@@ -3432,10 +3520,19 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
         JList<String> dayList = new JList<>(new String[]{"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"});
         dayList.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
         JScrollPane dayScrollPane = new JScrollPane(dayList);
-        JList<String> labDayList = new JList<>(new String[]{"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"});
-        labDayList.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
-        JScrollPane labDayScrollPane = new JScrollPane(labDayList);
-        JTextField labTimeField = new JTextField();
+        DefaultListModel<String> labEntryModel = new DefaultListModel<>();
+        JList<String> labEntryList = new JList<>(labEntryModel);
+        JScrollPane labEntryScrollPane = new JScrollPane(labEntryList);
+        JButton addLabEntryButton = new JButton("Add Lab Entry");
+        JButton removeLabEntryButton = new JButton("Remove Selected");
+
+        addLabEntryButton.addActionListener(e -> promptAndAddLabEntry(labEntryModel));
+        removeLabEntryButton.addActionListener(e -> {
+            int idx = labEntryList.getSelectedIndex();
+            if (idx >= 0) {
+                labEntryModel.remove(idx);
+            }
+        });
 
         Dimension inputSize = new Dimension(220, 26);
         courseCombo.setPreferredSize(inputSize);
@@ -3446,8 +3543,9 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
         instructorField.setPreferredSize(inputSize);
         roomField.setPreferredSize(inputSize);
         dayScrollPane.setPreferredSize(new Dimension(220, 90));
-        labDayScrollPane.setPreferredSize(new Dimension(220, 90));
-        labTimeField.setPreferredSize(inputSize);
+        labEntryScrollPane.setPreferredSize(new Dimension(220, 90));
+        addLabEntryButton.setPreferredSize(inputSize);
+        removeLabEntryButton.setPreferredSize(inputSize);
 
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(6, 6, 6, 6);
@@ -3478,11 +3576,11 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
         gbc.gridx = 0; gbc.gridy = 7; panel.add(new JLabel("Day(s):"), gbc);
         gbc.gridx = 1; panel.add(dayScrollPane, gbc);
 
-        gbc.gridx = 0; gbc.gridy = 8; panel.add(new JLabel("Lab Day(s):"), gbc);
-        gbc.gridx = 1; panel.add(labDayScrollPane, gbc);
+        gbc.gridx = 0; gbc.gridy = 8; panel.add(new JLabel("Lab Entries (Day | Time):"), gbc);
+        gbc.gridx = 1; panel.add(labEntryScrollPane, gbc);
 
-        gbc.gridx = 0; gbc.gridy = 9; panel.add(new JLabel("Lab Time(s) (HH:mm-HH:mm; ...):"), gbc);
-        gbc.gridx = 1; panel.add(labTimeField, gbc);
+        gbc.gridx = 0; gbc.gridy = 9; panel.add(addLabEntryButton, gbc);
+        gbc.gridx = 1; panel.add(removeLabEntryButton, gbc);
 
         // Confirmation button for adding the section
         int result = JOptionPane.showConfirmDialog(this, panel, "Add Section",
@@ -3500,9 +3598,18 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
         String room = roomField.getText().trim();
         List<String> selectedDays = dayList.getSelectedValuesList();
         String dayOfWeek = String.join(", ", selectedDays);
-        List<String> selectedLabDays = labDayList.getSelectedValuesList();
-        String labDayOfWeek = String.join(", ", selectedLabDays);
-        String labTime = labTimeField.getText().trim();
+        List<String> labDays = new ArrayList<>();
+        List<String> labTimes = new ArrayList<>();
+        for (int i = 0; i < labEntryModel.size(); i++) {
+            String entry = labEntryModel.getElementAt(i);
+            String[] parts = entry.split("\\|", 2);
+            if (parts.length == 2) {
+                labDays.add(parts[0].trim());
+                labTimes.add(parts[1].trim());
+            }
+        }
+        String labDayOfWeek = labDays.isEmpty() ? "" : String.join(", ", labDays);
+        String labTime = labTimes.isEmpty() ? "" : String.join("; ", labTimes);
 
         if (selectedCourse == null || selectedFaculty == null || sectionNumber.isEmpty()
                 || capacityStr.isEmpty() || enrolledStr.isEmpty()
@@ -3513,22 +3620,10 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
             return;
         }
 
-        // Lab fields are optional, but if one is provided both are required.
-        if ((selectedLabDays.isEmpty() && !labTime.isEmpty()) || (!selectedLabDays.isEmpty() && labTime.isEmpty())) {
-            JOptionPane.showMessageDialog(this,
-                    "Please provide both Lab Day(s) and Lab Time(s), or leave both empty.",
-                    "Validation Error", JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-
-        if (!selectedLabDays.isEmpty() && !labTime.isEmpty()) {
-            String[] labSlots = java.util.Arrays.stream(labTime.split(";"))
-                    .map(String::trim)
-                    .filter(slot -> !slot.isEmpty())
-                    .toArray(String[]::new);
-            if (labSlots.length != selectedLabDays.size()) {
+        for (String slot : labTimes) {
+            if (!isValidLabTimeRange(slot)) {
                 JOptionPane.showMessageDialog(this,
-                        "Enter one lab time per selected lab day, separated by ';'.",
+                        "Each lab time must use HH:mm-HH:mm with end time after start time.",
                         "Validation Error", JOptionPane.ERROR_MESSAGE);
                 return;
             }
@@ -3656,10 +3751,19 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
         JList<String> dayList = new JList<>(new String[]{"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"});
         dayList.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
         JScrollPane dayScrollPane = new JScrollPane(dayList);
-        JList<String> labDayList = new JList<>(new String[]{"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"});
-        labDayList.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
-        JScrollPane labDayScrollPane = new JScrollPane(labDayList);
-        JTextField labTimeField = new JTextField(selectedSection.getLabTime() != null ? selectedSection.getLabTime() : "");
+        DefaultListModel<String> labEntryModel = new DefaultListModel<>();
+        JList<String> labEntryList = new JList<>(labEntryModel);
+        JScrollPane labEntryScrollPane = new JScrollPane(labEntryList);
+        JButton addLabEntryButton = new JButton("Add Lab Entry");
+        JButton removeLabEntryButton = new JButton("Remove Selected");
+
+        addLabEntryButton.addActionListener(e -> promptAndAddLabEntry(labEntryModel));
+        removeLabEntryButton.addActionListener(e -> {
+            int idx = labEntryList.getSelectedIndex();
+            if (idx >= 0) {
+                labEntryModel.remove(idx);
+            }
+        });
 
         // Get current course selected in the combobox
         if (selectedSection.getCourse() != null && selectedSection.getCourse().getId() != null) {
@@ -3701,27 +3805,22 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
         instructorField.setPreferredSize(inputSize);
         roomField.setPreferredSize(inputSize);
         dayScrollPane.setPreferredSize(new Dimension(220, 90));
-        labDayScrollPane.setPreferredSize(new Dimension(220, 90));
-        labTimeField.setPreferredSize(inputSize);
+        labEntryScrollPane.setPreferredSize(new Dimension(220, 90));
+        addLabEntryButton.setPreferredSize(inputSize);
+        removeLabEntryButton.setPreferredSize(inputSize);
 
-        if (selectedSection.getLabDayOfWeek() != null && !selectedSection.getLabDayOfWeek().isBlank()) {
+        if (selectedSection.getLabDayOfWeek() != null && !selectedSection.getLabDayOfWeek().isBlank()
+                && selectedSection.getLabTime() != null && !selectedSection.getLabTime().isBlank()) {
             String[] existingLabDays = selectedSection.getLabDayOfWeek().split(",");
-            java.util.Set<String> existingLabDaySet = new java.util.HashSet<>();
-            for (String d : existingLabDays) {
-                existingLabDaySet.add(d.trim());
-            }
-            java.util.List<Integer> labIndices = new java.util.ArrayList<>();
-            ListModel<String> labModel = labDayList.getModel();
-            for (int i = 0; i < labModel.getSize(); i++) {
-                if (existingLabDaySet.contains(labModel.getElementAt(i))) {
-                    labIndices.add(i);
+            String[] existingLabTimes = selectedSection.getLabTime().split(";");
+            int count = Math.min(existingLabDays.length, existingLabTimes.length);
+            for (int i = 0; i < count; i++) {
+                String day = existingLabDays[i].trim();
+                String time = existingLabTimes[i].trim();
+                if (!day.isEmpty() && !time.isEmpty()) {
+                    labEntryModel.addElement(day + " | " + time);
                 }
             }
-            int[] selectedLabIndices = new int[labIndices.size()];
-            for (int i = 0; i < labIndices.size(); i++) {
-                selectedLabIndices[i] = labIndices.get(i);
-            }
-            labDayList.setSelectedIndices(selectedLabIndices);
         }
 
         if (selectedSection.getFaculty() != null && selectedSection.getFaculty().getId() != null) {
@@ -3757,11 +3856,11 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
         gbc.gridx = 0; gbc.gridy = 7; panel.add(new JLabel("Day(s):"), gbc);
         gbc.gridx = 1; panel.add(dayScrollPane, gbc);
 
-        gbc.gridx = 0; gbc.gridy = 8; panel.add(new JLabel("Lab Day(s):"), gbc);
-        gbc.gridx = 1; panel.add(labDayScrollPane, gbc);
+        gbc.gridx = 0; gbc.gridy = 8; panel.add(new JLabel("Lab Entries (Day | Time):"), gbc);
+        gbc.gridx = 1; panel.add(labEntryScrollPane, gbc);
 
-        gbc.gridx = 0; gbc.gridy = 9; panel.add(new JLabel("Lab Time(s) (HH:mm-HH:mm; ...):"), gbc);
-        gbc.gridx = 1; panel.add(labTimeField, gbc);
+        gbc.gridx = 0; gbc.gridy = 9; panel.add(addLabEntryButton, gbc);
+        gbc.gridx = 1; panel.add(removeLabEntryButton, gbc);
 
         // Confirmation button for editing the section
         int result = JOptionPane.showConfirmDialog(this, panel, "Confirm Edit",
@@ -3778,9 +3877,18 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
         String room = roomField.getText().trim();
         List<String> selectedDays = dayList.getSelectedValuesList();
         String dayOfWeek = String.join(", ", selectedDays);
-        List<String> selectedLabDays = labDayList.getSelectedValuesList();
-        String labDayOfWeek = String.join(", ", selectedLabDays);
-        String labTime = labTimeField.getText().trim();
+        List<String> labDays = new ArrayList<>();
+        List<String> labTimes = new ArrayList<>();
+        for (int i = 0; i < labEntryModel.size(); i++) {
+            String entry = labEntryModel.getElementAt(i);
+            String[] parts = entry.split("\\|", 2);
+            if (parts.length == 2) {
+                labDays.add(parts[0].trim());
+                labTimes.add(parts[1].trim());
+            }
+        }
+        String labDayOfWeek = labDays.isEmpty() ? "" : String.join(", ", labDays);
+        String labTime = labTimes.isEmpty() ? "" : String.join("; ", labTimes);
 
         // Handle validation/empty errors
         if (selectedCourse == null || selectedFaculty == null || sectionNumber.isEmpty()
@@ -3791,21 +3899,10 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
             return;
         }
 
-        if ((selectedLabDays.isEmpty() && !labTime.isEmpty()) || (!selectedLabDays.isEmpty() && labTime.isEmpty())) {
-            JOptionPane.showMessageDialog(this,
-                    "Please provide both Lab Day(s) and Lab Time(s), or leave both empty.",
-                    "Validation Error", JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-
-        if (!selectedLabDays.isEmpty() && !labTime.isEmpty()) {
-            String[] labSlots = java.util.Arrays.stream(labTime.split(";"))
-                    .map(String::trim)
-                    .filter(slot -> !slot.isEmpty())
-                    .toArray(String[]::new);
-            if (labSlots.length != selectedLabDays.size()) {
+        for (String slot : labTimes) {
+            if (!isValidLabTimeRange(slot)) {
                 JOptionPane.showMessageDialog(this,
-                        "Enter one lab time per selected lab day, separated by ';'.",
+                        "Each lab time must use HH:mm-HH:mm with end time after start time.",
                         "Validation Error", JOptionPane.ERROR_MESSAGE);
                 return;
             }
