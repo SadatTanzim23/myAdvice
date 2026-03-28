@@ -655,22 +655,58 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
 
     private void showAdvisingCompletedDialog() {
         fetchStudentsThen(() -> {
-            Student student = selectStudent("Select student:", "Completed Courses");
-            if (student == null) {
+            String studentIdInput = JOptionPane.showInputDialog(
+                    this,
+                    "Enter Student ID:",
+                    "Completed Courses",
+                    JOptionPane.PLAIN_MESSAGE
+            );
+            if (studentIdInput == null || studentIdInput.trim().isEmpty()) {
                 return;
             }
 
+            final String input = studentIdInput.trim();
+            Student matchedStudent = null;
+            if (allStudents != null) {
+                for (Student s : allStudents) {
+                    if (s == null || s.getId() == null) continue;
+                    if (input.equals(String.valueOf(s.getId()))) {
+                        matchedStudent = s;
+                        break;
+                    }
+                    if (s.getStudentNumber() != null && input.equalsIgnoreCase(s.getStudentNumber().trim())) {
+                        matchedStudent = s;
+                        break;
+                    }
+                }
+            }
+
+            if (matchedStudent == null) {
+                JOptionPane.showMessageDialog(this,
+                        "Student not found for ID: " + input,
+                        "Validation Error",
+                        JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            final Long studentId = matchedStudent.getId();
+            final Student displayStudent = matchedStudent;
+
             new Thread(() -> {
                 try {
-                    List<Transcript> completed = ApiClient.getAdvisingCompletedCourses(student.getId());
+                    List<Transcript> completed = ApiClient.getAdvisingCompletedCourses(studentId);
                     if (completed == null) {
                         completed = new ArrayList<>();
                     }
                     List<Transcript> finalCompleted = completed;
 
                     SwingUtilities.invokeLater(() -> {
+                        String studentLabel = displayStudent != null
+                                ? displayStudent.toString()
+                                : ("Student ID " + studentId);
+
                         StringBuilder sb = new StringBuilder("Completed Courses for ")
-                                .append(student)
+                                .append(studentLabel)
                                 .append(":\n\n");
 
                         if (finalCompleted.isEmpty()) {
