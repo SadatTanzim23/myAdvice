@@ -12,6 +12,7 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
     private List<Faculty> allFaculty;
     private List<Student> allStudents;
     private List<Transcript> allTranscripts;
+    private List<Appointment> allAppointments;
 
     public ModuleScreen(int idx) {
         this.moduleIdx = idx;
@@ -275,6 +276,14 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
                 card.setOnClickAction(this::showCourseEnrolmentStatsDialog);
             } else if (items[i][0].equals("Dashboard Overview")) {
                 card.setOnClickAction(this::showDashboardOverviewDialog);
+            } else if (items[i][0].equals("Book Advising Appointment")) {
+                card.setOnClickAction(this::showBookAdvisingAppointmentDialog);
+            } else if (items[i][0].equals("Browse Faculty Availability")) {
+                card.setOnClickAction(this::showBrowseFacultyAvailabilityDialog);
+            } else if (items[i][0].equals("My Upcoming Appointments")) {
+                card.setOnClickAction(this::showMyUpcomingAppointmentsDialog);
+            } else if (items[i][0].equals("Cancel / Reschedule")) {
+                card.setOnClickAction(this::showCancelOrRescheduleDialog);
             }
 
             p.add(card, gbc);
@@ -810,6 +819,315 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
                 "Error", JOptionPane.ERROR_MESSAGE));
     }
 
+
+    //Helper to fetch appointments for a student
+    private void fetchAppointmentsThen(Long studentId, Runnable onSuccess) {
+        new Thread(() -> {
+            try {
+                allAppointments = ApiClient.getStudentAppointments(studentId);
+                if (allAppointments == null) allAppointments = new ArrayList<>();
+                if (onSuccess != null) SwingUtilities.invokeLater(onSuccess);
+            } catch (Exception e) {
+                String errorMsg = e.getMessage() != null ? e.getMessage() : e.toString();
+                SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
+                        "Error: " + errorMsg, "Error", JOptionPane.ERROR_MESSAGE));
+            }
+        }).start();
+    }
+
+    // Accept either DB student id or student number and resolve to the DB id used by booking APIs.
+    private Long resolveStudentIdInput(String studentIdentifier) throws Exception {
+        String value = studentIdentifier == null ? "" : studentIdentifier.trim();
+        if (value.isEmpty()) {
+            throw new Exception("Student ID is required.");
+        }
+
+        List<Student> students = ApiClient.getAllStudents();
+        if (students == null || students.isEmpty()) {
+            throw new Exception("No students found. Please create a student profile first.");
+        }
+
+        for (Student s : students) {
+            if (s != null && s.getId() != null && value.equals(String.valueOf(s.getId()))) {
+                return s.getId();
+            }
+        }
+
+        for (Student s : students) {
+            if (s == null || s.getId() == null || s.getStudentNumber() == null) continue;
+            if (value.equalsIgnoreCase(s.getStudentNumber().trim())) {
+                return s.getId();
+            }
+        }
+
+        throw new Exception("Student not found for input: " + value + ". Use a valid DB ID or student number.");
+    }
+
+    //Book Advising Appointment dialog
+    private void showBookAppointmentDialog() {
+        if (allFaculty == null || allFaculty.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "No faculty available.", "Info", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+        JPanel panel = new JPanel(new GridLayout(4, 2, 8, 8));
+        panel.setBorder(new EmptyBorder(16, 16, 16, 16));
+        JTextField studentIdField = new JTextField();
+        JComboBox<Faculty> facultyCombo = new JComboBox<>(allFaculty.toArray(new Faculty[0]));
+        JTextField dateTimeField = new JTextField("2026-04-01T10:00:00");
+        JTextField statusField = new JTextField("scheduled");
+        panel.add(new JLabel("Student ID:")); panel.add(studentIdField);
+        panel.add(new JLabel("Faculty:")); panel.add(facultyCombo);
+        panel.add(new JLabel("Date & Time (yyyy-MM-ddTHH:mm:ss):")); panel.add(dateTimeField);
+        panel.add(new JLabel("Status:")); panel.add(statusField);
+        int result = JOptionPane.showConfirmDialog(this, panel, "Book Advising Appointment",
+                JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+        if (result != JOptionPane.OK_OPTION) return;
+        String studentIdentifier = studentIdField.getText().trim();
+        Faculty selectedFaculty = (Faculty) facultyCombo.getSelectedItem();
+        String dateTime = dateTimeField.getText().trim();
+        String status = statusField.getText().trim();
+        if (studentIdentifier.isEmpty() || selectedFaculty == null || dateTime.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Please fill in all fields.", "Validation Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        new Thread(() -> {
+            try {
+                Long resolvedStudentId = resolveStudentIdInput(studentIdentifier);
+                ApiClient.bookAppointment(resolvedStudentId, selectedFaculty.getId(), dateTime, status);
+                SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
+                        "Appointment booked successfully!", "Success", JOptionPane.INFORMATION_MESSAGE));
+            } catch (Exception e) {
+                String errorMsg = e.getMessage() != null ? e.getMessage() : e.toString();
+                SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
+                        "Error: " + errorMsg, "Error", JOptionPane.ERROR_MESSAGE));
+            }
+        }).start();
+    }
+
+    //Browse Faculty Availability dialog
+    private void showFacultyAvailabilityDialog() {
+        new Thread(() -> {
+            try {
+                List<Faculty> faculty = ApiClient.getAllFaculty();
+                if (faculty == null || faculty.isEmpty()) {
+                    SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
+                            "No faculty available.", "Info", JOptionPane.INFORMATION_MESSAGE));
+                    return;
+                }
+                String[] options = new String[faculty.size()];
+                for (int i = 0; i < faculty.size(); i++) {
+                    options[i] = faculty.get(i).getFirstName() + " " + faculty.get(i).getLastName();
+                }
+                SwingUtilities.invokeLater(() -> {
+                    int selectedIndex = JOptionPane.showOptionDialog(this,
+                            "Select a faculty member to view appointments:",
+                            "Browse Faculty Availability",
+                            JOptionPane.DEFAULT_OPTION, JOptionPane.PLAIN_MESSAGE,
+                            null, options, options[0]);
+                    if (selectedIndex < 0) return;
+                    Faculty selected = faculty.get(selectedIndex);
+                    new Thread(() -> {
+                        try {
+                            List<Appointment> appointments = ApiClient.getFacultyAppointments(selected.getId());
+                            SwingUtilities.invokeLater(() -> {
+                                if (appointments == null || appointments.isEmpty()) {
+                                    JOptionPane.showMessageDialog(this,
+                                            selected.getFirstName() + " " + selected.getLastName() + " has no appointments.",
+                                            "Faculty Availability", JOptionPane.INFORMATION_MESSAGE);
+                                    return;
+                                }
+                                StringBuilder sb = new StringBuilder("Appointments for " + selected.getFirstName() + " " + selected.getLastName() + ":\n\n");
+                                for (Appointment a : appointments) {
+                                    Student student = a.getStudent();
+                                    String studentName = "Unknown Student";
+                                    if (student != null) {
+                                        String first = student.getFirstName() != null ? student.getFirstName().trim() : "";
+                                        String last = student.getLastName() != null ? student.getLastName().trim() : "";
+                                        String fullName = (first + " " + last).trim();
+                                        if (!fullName.isEmpty()) {
+                                            studentName = fullName;
+                                        } else if (student.getStudentNumber() != null && !student.getStudentNumber().trim().isEmpty()) {
+                                            studentName = "Student " + student.getStudentNumber().trim();
+                                        }
+                                    }
+
+                                    sb.append("- ").append(a.getDateTime())
+                                            .append(" | Student: ").append(studentName)
+                                            .append(" | Status: ").append(a.getStatus()).append("\n");
+                                }
+                                JTextArea textArea = new JTextArea(sb.toString(), 14, 50);
+                                textArea.setEditable(false);
+                                JOptionPane.showMessageDialog(this, new JScrollPane(textArea),
+                                        "Faculty Availability", JOptionPane.INFORMATION_MESSAGE);
+                            });
+                        } catch (Exception e) {
+                            String errorMsg = e.getMessage() != null ? e.getMessage() : e.toString();
+                            SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
+                                    "Error: " + errorMsg, "Error", JOptionPane.ERROR_MESSAGE));
+                        }
+                    }).start();
+                });
+            } catch (Exception e) {
+                String errorMsg = e.getMessage() != null ? e.getMessage() : e.toString();
+                SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
+                        "Error: " + errorMsg, "Error", JOptionPane.ERROR_MESSAGE));
+            }
+        }).start();
+    }
+
+    //My Upcoming Appointments dialog
+    private void showMyAppointmentsDialog() {
+        String studentInput = JOptionPane.showInputDialog(this,
+                "Enter your Student ID:",
+                "My Appointments", JOptionPane.PLAIN_MESSAGE);
+        if (studentInput == null || studentInput.trim().isEmpty()) return;
+
+        new Thread(() -> {
+            try {
+                Long studentId = resolveStudentIdInput(studentInput);
+                List<Appointment> appointments = ApiClient.getStudentAppointments(studentId);
+                SwingUtilities.invokeLater(() -> {
+                    if (appointments == null || appointments.isEmpty()) {
+                        JOptionPane.showMessageDialog(this, "No appointments found.", "My Appointments", JOptionPane.INFORMATION_MESSAGE);
+                        return;
+                    }
+                    StringBuilder sb = new StringBuilder("Your Appointments:\n\n");
+                    for (Appointment a : appointments) {
+                        sb.append("- ID: ").append(a.getId())
+                                .append(" | ").append(a.getDateTime())
+                                .append(" | Faculty: ").append(a.getFaculty() != null ? a.getFaculty().getFirstName() + " " + a.getFaculty().getLastName() : "N/A")
+                                .append(" | Status: ").append(a.getStatus()).append("\n");
+                    }
+                    JTextArea textArea = new JTextArea(sb.toString(), 14, 55);
+                    textArea.setEditable(false);
+                    JOptionPane.showMessageDialog(this, new JScrollPane(textArea), "My Appointments", JOptionPane.INFORMATION_MESSAGE);
+                });
+            } catch (Exception e) {
+                String errorMsg = e.getMessage() != null ? e.getMessage() : e.toString();
+                SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
+                        "Error: " + errorMsg, "Error", JOptionPane.ERROR_MESSAGE));
+            }
+        }).start();
+    }
+
+    //Find COMP 400/405 Supervisor dialog
+    private void showFindSupervisorDialog() {
+        if (allFaculty == null || allFaculty.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "No faculty available.", "Info", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+        StringBuilder sb = new StringBuilder("Available Supervisors for COMP 400/405:\n\n");
+        for (Faculty f : allFaculty) {
+            sb.append("- ").append(f.getFirstName()).append(" ").append(f.getLastName())
+                    .append(" | ").append(f.getDepartment())
+                    .append(" | ").append(f.getEmail()).append("\n");
+        }
+        JTextArea textArea = new JTextArea(sb.toString(), 14, 55);
+        textArea.setEditable(false);
+        JOptionPane.showMessageDialog(this, new JScrollPane(textArea), "Find COMP 400/405 Supervisor", JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    //Research Interest Matching dialog
+    private void showResearchInterestDialog() {
+        if (allFaculty == null || allFaculty.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "No faculty available.", "Info", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+        String interest = JOptionPane.showInputDialog(this, "Enter a research interest or keyword:", "Research Interest Matching", JOptionPane.PLAIN_MESSAGE);
+        if (interest == null || interest.trim().isEmpty()) return;
+        String keyword = interest.trim().toLowerCase();
+        List<Faculty> matched = new ArrayList<>();
+        for (Faculty f : allFaculty) {
+            if (f.getDepartment() != null && f.getDepartment().toLowerCase().contains(keyword)) {
+                matched.add(f);
+            }
+        }
+        if (matched.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "No faculty matched your interest.", "Research Interest Matching", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+        StringBuilder sb = new StringBuilder("Faculty matching \"" + interest + "\":\n\n");
+        for (Faculty f : matched) {
+            sb.append("- ").append(f.getFirstName()).append(" ").append(f.getLastName())
+                    .append(" | ").append(f.getDepartment())
+                    .append(" | ").append(f.getEmail()).append("\n");
+        }
+        JTextArea textArea = new JTextArea(sb.toString(), 14, 55);
+        textArea.setEditable(false);
+        JOptionPane.showMessageDialog(this, new JScrollPane(textArea), "Research Interest Matching", JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    //Cancel / Reschedule dialog
+    private void showCancelRescheduleDialog() {
+        String studentInput = JOptionPane.showInputDialog(this,
+                "Enter your Student ID:",
+                "Cancel / Reschedule", JOptionPane.PLAIN_MESSAGE);
+        if (studentInput == null || studentInput.trim().isEmpty()) return;
+
+        new Thread(() -> {
+            try {
+                Long studentId = resolveStudentIdInput(studentInput);
+                List<Appointment> appointments = ApiClient.getStudentAppointments(studentId);
+                    SwingUtilities.invokeLater(() -> {
+                        if (appointments == null || appointments.isEmpty()) {
+                            JOptionPane.showMessageDialog(this, "No appointments found.", "Cancel / Reschedule", JOptionPane.INFORMATION_MESSAGE);
+                            return;
+                        }
+                        String[] options = new String[appointments.size()];
+                        for (int i = 0; i < appointments.size(); i++) {
+                            Appointment a = appointments.get(i);
+                            options[i] = "ID: " + a.getId() + " | " + a.getDateTime() + " | " + a.getStatus();
+                        }
+                        int selectedIndex = JOptionPane.showOptionDialog(this,
+                                "Select an appointment:",
+                                "Cancel / Reschedule",
+                                JOptionPane.DEFAULT_OPTION, JOptionPane.PLAIN_MESSAGE,
+                                null, options, options[0]);
+                        if (selectedIndex < 0) return;
+                        Appointment selected = appointments.get(selectedIndex);
+                        String[] actions = {"Cancel", "Reschedule", "Back"};
+                        int action = JOptionPane.showOptionDialog(this,
+                                "What do you want to do?",
+                                "Cancel / Reschedule",
+                                JOptionPane.DEFAULT_OPTION, JOptionPane.PLAIN_MESSAGE,
+                                null, actions, actions[0]);
+                        if (action == 0) {
+                            new Thread(() -> {
+                                try {
+                                    ApiClient.cancelAppointment(selected.getId());
+                                    SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
+                                            "Appointment cancelled!", "Success", JOptionPane.INFORMATION_MESSAGE));
+                                } catch (Exception e) {
+                                    String errorMsg = e.getMessage() != null ? e.getMessage() : e.toString();
+                                    SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
+                                            "Error: " + errorMsg, "Error", JOptionPane.ERROR_MESSAGE));
+                                }
+                            }).start();
+                        } else if (action == 1) {
+                            String newDateTime = JOptionPane.showInputDialog(this,
+                                    "Enter new date and time (yyyy-MM-ddTHH:mm:ss):",
+                                    "Reschedule", JOptionPane.PLAIN_MESSAGE);
+                            if (newDateTime == null || newDateTime.trim().isEmpty()) return;
+                            new Thread(() -> {
+                                try {
+                                    ApiClient.rescheduleAppointment(selected.getId(), newDateTime.trim());
+                                    SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
+                                            "Appointment rescheduled!", "Success", JOptionPane.INFORMATION_MESSAGE));
+                                } catch (Exception e) {
+                                    String errorMsg = e.getMessage() != null ? e.getMessage() : e.toString();
+                                    SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
+                                            "Error: " + errorMsg, "Error", JOptionPane.ERROR_MESSAGE));
+                                }
+                            }).start();
+                        }
+                    });
+            } catch (Exception e) {
+                String errorMsg = e.getMessage() != null ? e.getMessage() : e.toString();
+                SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
+                        "Error: " + errorMsg, "Error", JOptionPane.ERROR_MESSAGE));
+            }
+        }).start();
+    }
     private void fetchReportStudentsThen(Runnable onSuccess) {
         new Thread(() -> {
             try {
@@ -1285,54 +1603,75 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
 
         JPanel panel = new JPanel(new GridLayout(6, 2, 8, 8));
         panel.setBorder(new EmptyBorder(16, 16, 16, 16));
+
+        JLabel firstNameLabel = new JLabel("First Name:");
         JTextField firstNameField = new JTextField(selected.getFirstName());
+
+        JLabel lastNameLabel = new JLabel("Last Name:");
         JTextField lastNameField = new JTextField(selected.getLastName());
+
+        JLabel emailLabel = new JLabel("Email:");
         JTextField emailField = new JTextField(selected.getEmail());
+
+        JLabel studentNumberLabel = new JLabel("Student Number:");
         JTextField studentNumberField = new JTextField(selected.getStudentNumber());
+
+        JLabel departmentLabel = new JLabel("Department:");
         JTextField departmentField = new JTextField(selected.getFacultyName());
+
+        JLabel programLabel = new JLabel("Program:");
         JTextField programField = new JTextField(selected.getProgramName());
 
-        panel.add(new JLabel("First Name:")); panel.add(firstNameField);
-        panel.add(new JLabel("Last Name:")); panel.add(lastNameField);
-        panel.add(new JLabel("Email:")); panel.add(emailField);
-        panel.add(new JLabel("Student Number:")); panel.add(studentNumberField);
-        panel.add(new JLabel("Department:")); panel.add(departmentField);
-        panel.add(new JLabel("Program:")); panel.add(programField);
+        panel.add(firstNameLabel);
+        panel.add(firstNameField);
+        panel.add(lastNameLabel);
+        panel.add(lastNameField);
+        panel.add(emailLabel);
+        panel.add(emailField);
+        panel.add(studentNumberLabel);
+        panel.add(studentNumberField);
+        panel.add(departmentLabel);
+        panel.add(departmentField);
+        panel.add(programLabel);
+        panel.add(programField);
 
         int result = JOptionPane.showConfirmDialog(this, panel, "Edit Student",
                 JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
-        if (result != JOptionPane.OK_OPTION) return;
 
-        Student updated = new Student();
-        updated.setFirstName(firstNameField.getText().trim());
-        updated.setLastName(lastNameField.getText().trim());
-        updated.setEmail(emailField.getText().trim());
-        updated.setStudentNumber(studentNumberField.getText().trim());
-        updated.setFacultyName(departmentField.getText().trim());
-        updated.setProgramName(programField.getText().trim());
+        // If user clicks OK, update the student using the API and refresh the student list, otherwise do nothing
+        if (result == JOptionPane.OK_OPTION) {
+            Student updated = new Student();
+            updated.setId(selected.getId());
+            updated.setFirstName(firstNameField.getText().trim());
+            updated.setLastName(lastNameField.getText().trim());
+            updated.setEmail(emailField.getText().trim());
+            updated.setStudentNumber(studentNumberField.getText().trim());
+            updated.setFacultyName(departmentField.getText().trim());
+            updated.setProgramName(programField.getText().trim());
 
-        if (updated.getFirstName().isEmpty() || updated.getLastName().isEmpty() || updated.getEmail().isEmpty()
-                || updated.getStudentNumber().isEmpty() || updated.getFacultyName().isEmpty() || updated.getProgramName().isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Please fill in all fields.",
-                    "Validation Error", JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-
-        new Thread(() -> {
-            try {
-                ApiClient.editStudent(selected.getId(), updated);
-                SwingUtilities.invokeLater(() -> {
-                    JOptionPane.showMessageDialog(this, "Student updated successfully.",
-                            "Success", JOptionPane.INFORMATION_MESSAGE);
-                    fetchStudentsThen(null);
-                });
-            } catch (Exception e) {
-                String errorMsg = e.getMessage() != null ? e.getMessage() : e.toString();
-                SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
-                        "Error editing student: " + errorMsg,
-                        "Error", JOptionPane.ERROR_MESSAGE));
+            if (updated.getFirstName().isEmpty() || updated.getLastName().isEmpty() || updated.getEmail().isEmpty()
+                    || updated.getStudentNumber().isEmpty() || updated.getFacultyName().isEmpty() || updated.getProgramName().isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Please fill in all fields.",
+                        "Validation Error", JOptionPane.ERROR_MESSAGE);
+                return;
             }
-        }).start();
+
+            new Thread(() -> {
+                try {
+                    ApiClient.editStudent(selected.getId(), updated);
+                    SwingUtilities.invokeLater(() -> {
+                        JOptionPane.showMessageDialog(this, "Student updated successfully.",
+                                "Success", JOptionPane.INFORMATION_MESSAGE);
+                        fetchStudentsThen(null);
+                    });
+                } catch (Exception e) {
+                    String errorMsg = e.getMessage() != null ? e.getMessage() : e.toString();
+                    SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
+                            "Error editing student: " + errorMsg,
+                            "Error", JOptionPane.ERROR_MESSAGE));
+                }
+            }).start();
+        }
     }
 
     private void showDeleteStudentDialog() {
@@ -2191,8 +2530,7 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
                     } else {
                         for (Section s : finalSections) {
                             String courseCode = (s.getCourse() != null && s.getCourse().getCourseCode() != null)
-                                    ? s.getCourse().getCourseCode()
-                                    : "N/A";
+                                    ? s.getCourse().getCourseCode() : "N/A";
                             String secNo = s.getSectionNumber() != null ? s.getSectionNumber() : "N/A";
                             String instructor = s.getInstructorName() != null ? s.getInstructorName() : "N/A";
                             String day = s.getDayOfWeek() != null ? s.getDayOfWeek() : "N/A";
@@ -2703,5 +3041,19 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
         }).start();
     }
 
+    private void showBookAdvisingAppointmentDialog() {
+        fetchFacultyThen(this::showBookAppointmentDialog);
+    }
 
+    private void showBrowseFacultyAvailabilityDialog() {
+        showFacultyAvailabilityDialog();
+    }
+
+    private void showMyUpcomingAppointmentsDialog() {
+        showMyAppointmentsDialog();
+    }
+
+    private void showCancelOrRescheduleDialog() {
+        showCancelRescheduleDialog();
+    }
 }
