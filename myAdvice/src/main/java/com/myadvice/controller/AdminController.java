@@ -181,7 +181,18 @@ public class AdminController {
     @PostMapping("/sections/add")
     public Section addSection(@RequestBody Section section){
         try {
-            return adminService.addSection(section.getCourse(), section.getFaculty(), section.getSectionNumber(), section.getCapacity(), section.getEnrolledCount(), section.getInstructorName(), section.getDayOfWeek());
+            return adminService.addSection(
+                    section.getCourse(),
+                    section.getFaculty(),
+                    section.getSectionNumber(),
+                    section.getCapacity(),
+                    section.getEnrolledCount(),
+                    section.getInstructorName(),
+                    section.getDayOfWeek(),
+                    section.getLabDayOfWeek(),
+                    section.getLabTime(),
+                    section.getRoom()
+            );
         } catch (RuntimeException e) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage(), e);
         }

@@ -131,7 +131,8 @@ public class AdminService {
         return false;
     }
 
-    public Section addSection(Course course, Faculty faculty, String sectionNumber, Integer capacity, Integer enrolledCount, String instructorName, String dayOfWeek){
+    public Section addSection(Course course, Faculty faculty, String sectionNumber, Integer capacity, Integer enrolledCount,
+                              String instructorName, String dayOfWeek, String labDayOfWeek, String labTime, String room){
         if (course == null || course.getId() == null) {
             throw new RuntimeException("Course is required");
         }
@@ -145,6 +146,9 @@ public class AdminService {
                 .orElseThrow(() -> new RuntimeException("Faculty not found"));
 
         Section newSectionToAdd = new Section(managedCourse, managedFaculty, sectionNumber, capacity, enrolledCount, instructorName, dayOfWeek);
+        newSectionToAdd.setLabDayOfWeek(labDayOfWeek);
+        newSectionToAdd.setLabTime(labTime);
+        newSectionToAdd.setRoom(room);
         sectionRepository.save(newSectionToAdd);
         return newSectionToAdd; // return newly added section
     }
@@ -177,6 +181,9 @@ public class AdminService {
         sectionToEdit.setEnrolledCount(updatedSection.getEnrolledCount());
         sectionToEdit.setInstructorName(updatedSection.getInstructorName());
         sectionToEdit.setDayOfWeek(updatedSection.getDayOfWeek());
+        sectionToEdit.setLabDayOfWeek(updatedSection.getLabDayOfWeek());
+        sectionToEdit.setLabTime(updatedSection.getLabTime());
+        sectionToEdit.setRoom(updatedSection.getRoom());
         return sectionRepository.save(sectionToEdit);
     }
 
