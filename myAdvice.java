@@ -57,8 +57,6 @@ public class myAdvice {
             {"Book Advising Appointment",    "Reserve a slot with your advisor"          },
             {"Browse Faculty Availability",  "See who is available and when"             },
             {"My Upcoming Appointments",     "View and manage your bookings"             },
-            {"Find COMP 400/405 Supervisor", "Locate a project supervisor"               },
-            {"Research Interest Matching",   "Find faculty by research area"             },
             {"Cancel / Reschedule",          "Modify an existing appointment"            },
         },
         { //System Administration
