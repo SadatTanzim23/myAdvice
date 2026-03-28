@@ -306,6 +306,56 @@ public class ApiClient {
         }
     }
 
+    // Booking API methods
+    public static Appointment bookAppointment(Long studentId, Long facultyId, String dateTime, String status) throws Exception {
+        String safeStatus = (status == null || status.isBlank()) ? "scheduled" : status.trim();
+        String json = "{"
+                + "\"studentId\":" + studentId + ","
+                + "\"facultyId\":" + facultyId + ","
+                + "\"dateTime\":\"" + escapeJson(dateTime) + "\","
+                + "\"status\":\"" + escapeJson(safeStatus) + "\""
+                + "}";
+
+        HttpResponse<String> response = sendRequestWithFallback("/bookings/book", "POST", json);
+        if (response.statusCode() != 200 && response.statusCode() != 201) {
+            throw new Exception("Failed to book appointment: " + response.body());
+        }
+        return gson.fromJson(response.body(), Appointment.class);
+    }
+
+    public static List<Appointment> getStudentAppointments(Long studentId) throws Exception {
+        HttpResponse<String> response = sendRequestWithFallback("/bookings/student/" + studentId, "GET", null);
+        if (response.statusCode() != 200) {
+            throw new Exception("Failed to load student appointments: " + response.body());
+        }
+        return gson.fromJson(response.body(), new TypeToken<List<Appointment>>(){}.getType());
+    }
+
+    public static List<Appointment> getFacultyAppointments(Long facultyId) throws Exception {
+        HttpResponse<String> response = sendRequestWithFallback("/bookings/faculty/" + facultyId, "GET", null);
+        if (response.statusCode() != 200) {
+            throw new Exception("Failed to load faculty appointments: " + response.body());
+        }
+        return gson.fromJson(response.body(), new TypeToken<List<Appointment>>(){}.getType());
+    }
+
+    public static void cancelAppointment(Long appointmentId) throws Exception {
+        HttpResponse<String> response = sendRequestWithFallback("/bookings/cancel/" + appointmentId, "DELETE", null);
+        if (response.statusCode() != 200) {
+            throw new Exception("Failed to cancel appointment: " + response.body());
+        }
+    }
+
+    public static Appointment rescheduleAppointment(Long appointmentId, String newDateTime) throws Exception {
+        // BookingController expects LocalDateTime in request body, represented as a JSON string.
+        String json = "\"" + escapeJson(newDateTime) + "\"";
+        HttpResponse<String> response = sendRequestWithFallback("/bookings/reschedule/" + appointmentId, "PUT", json);
+        if (response.statusCode() != 200) {
+            throw new Exception("Failed to reschedule appointment: " + response.body());
+        }
+        return gson.fromJson(response.body(), Appointment.class);
+    }
+
     // Section API methods
     public static List<Section> getAllSections() throws Exception {
         HttpRequest request = HttpRequest.newBuilder()
@@ -508,6 +558,58 @@ public class ApiClient {
             return lastResponse;
         }
         throw new Exception("Unable to reach advising service. Attempts: " + String.join(", ", attempted));
+    }
+
+    private static HttpResponse<String> sendRequestWithFallback(String path, String method, String body) throws Exception {
+        List<String> attempted = new ArrayList<>();
+        HttpResponse<String> lastResponse = null;
+
+        for (String base : getBaseUrlCandidates()) {
+            HttpRequest.Builder builder = HttpRequest.newBuilder().uri(URI.create(base + path));
+
+            if ("GET".equals(method)) {
+                builder.GET();
+            } else if ("DELETE".equals(method)) {
+                builder.DELETE();
+            } else if ("POST".equals(method)) {
+                builder.header("Content-Type", "application/json");
+                builder.POST(body == null ? HttpRequest.BodyPublishers.noBody() : HttpRequest.BodyPublishers.ofString(body));
+            } else if ("PUT".equals(method)) {
+                builder.header("Content-Type", "application/json");
+                builder.method("PUT", body == null ? HttpRequest.BodyPublishers.noBody() : HttpRequest.BodyPublishers.ofString(body));
+            } else {
+                throw new Exception("Unsupported HTTP method: " + method);
+            }
+
+            try {
+                HttpResponse<String> response = client.send(builder.build(), HttpResponse.BodyHandlers.ofString());
+                attempted.add(base + " -> " + response.statusCode());
+
+                if (response.statusCode() == 200 || response.statusCode() == 201 || response.statusCode() == 204) {
+                    BASE_URL = base;
+                    return response;
+                }
+
+                if (lastResponse == null || lastResponse.statusCode() == 404) {
+                    lastResponse = response;
+                }
+            } catch (Exception ex) {
+                attempted.add(base + " -> connection failed");
+            }
+        }
+
+        if (lastResponse != null) {
+            return lastResponse;
+        }
+
+        throw new Exception("Unable to reach backend for " + path + ". Attempts: " + String.join(", ", attempted));
+    }
+
+    private static String escapeJson(String value) {
+        if (value == null) {
+            return "";
+        }
+        return value.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 }
 
