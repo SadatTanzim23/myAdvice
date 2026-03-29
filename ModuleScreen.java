@@ -3221,14 +3221,14 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
     }
 
     private String normalizeTimeRange(String value) {
-        if (value == null) {
-            return "";
+        LocalTime[] range = parseLabTimeRange(value);
+        if (range == null) {
+            return value == null ? "" : value.trim();
         }
-        String compact = value.trim().replaceAll("\\s+", "");
-        if (compact.matches("\\d{2}:\\d{2}-\\d{2}:\\d{2}")) {
-            return compact;
-        }
-        return value.trim();
+        return String.format(java.util.Locale.US,
+                "%02d:%02d-%02d:%02d",
+                range[0].getHour(), range[0].getMinute(),
+                range[1].getHour(), range[1].getMinute());
     }
 
     private void showSchedulingCourseTimetableDialog() {
@@ -3645,18 +3645,26 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
     }
 
     private boolean isValidLabTimeRange(String value) {
-        if (value == null) return false;
+        return parseLabTimeRange(value) != null;
+    }
+
+    private LocalTime[] parseLabTimeRange(String value) {
+        if (value == null) return null;
         String v = value.trim();
-        if (!v.matches("\\d{2}:\\d{2}-\\d{2}:\\d{2}")) {
-            return false;
+        if (!v.matches("\\d{1,2}:\\d{2}\\s*-\\s*\\d{1,2}:\\d{2}")) {
+            return null;
         }
         try {
-            String[] parts = v.split("-");
-            LocalTime start = LocalTime.parse(parts[0]);
-            LocalTime end = LocalTime.parse(parts[1]);
-            return end.isAfter(start);
+            String[] parts = v.split("\\s*-\\s*");
+            java.time.format.DateTimeFormatter fmt = java.time.format.DateTimeFormatter.ofPattern("H:mm");
+            LocalTime start = LocalTime.parse(parts[0], fmt);
+            LocalTime end = LocalTime.parse(parts[1], fmt);
+            if (!end.isAfter(start)) {
+                return null;
+            }
+            return new LocalTime[]{start, end};
         } catch (Exception ex) {
-            return false;
+            return null;
         }
     }
 
@@ -3667,7 +3675,7 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
         JTextField timeField = new JTextField("10:00-11:00");
         panel.add(new JLabel("Lab Day:"));
         panel.add(dayCombo);
-        panel.add(new JLabel("Lab Time (HH:mm-HH:mm):"));
+        panel.add(new JLabel("Lab Time (H:mm-H:mm):"));
         panel.add(timeField);
 
         int result = JOptionPane.showConfirmDialog(this, panel,
@@ -3682,7 +3690,7 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
         String time = timeField.getText().trim();
         if (day.isEmpty() || !isValidLabTimeRange(time)) {
             JOptionPane.showMessageDialog(this,
-                    "Enter lab time as HH:mm-HH:mm with end time after start time.",
+                    "Enter lab time as H:mm-H:mm (or HH:mm-HH:mm) with end time after start time.",
                     "Validation Error",
                     JOptionPane.ERROR_MESSAGE);
             return;

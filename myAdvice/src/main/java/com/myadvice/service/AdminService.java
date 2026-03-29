@@ -419,7 +419,7 @@ public class AdminService {
 
         if (labDayOfWeek != null && !labDayOfWeek.isBlank()) {
             if (!isValidTimeRange(labTime)) {
-                throw new RuntimeException("Lab time must be in HH:mm-HH:mm format");
+                throw new RuntimeException("Lab time must be in H:mm-H:mm format (for example 1:00-2:00 or 01:00-02:00)");
             }
             for (Enrollment current : existing) {
                 if (current.getLabDayOfWeek() == null || current.getLabTime() == null) continue;
@@ -495,11 +495,12 @@ public class AdminService {
     private java.time.LocalTime[] parseTimeRange(String value) {
         if (value == null) return null;
         String v = value.trim();
-        if (!v.matches("\\d{2}:\\d{2}\\s*-\\s*\\d{2}:\\d{2}")) return null;
+        if (!v.matches("\\d{1,2}:\\d{2}\\s*-\\s*\\d{1,2}:\\d{2}")) return null;
         try {
             String[] parts = v.split("\\s*-\\s*");
-            java.time.LocalTime start = java.time.LocalTime.parse(parts[0]);
-            java.time.LocalTime end = java.time.LocalTime.parse(parts[1]);
+            java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter.ofPattern("H:mm");
+            java.time.LocalTime start = java.time.LocalTime.parse(parts[0], formatter);
+            java.time.LocalTime end = java.time.LocalTime.parse(parts[1], formatter);
             if (!end.isAfter(start)) return null;
             return new java.time.LocalTime[]{start, end};
         } catch (Exception ex) {
@@ -508,9 +509,13 @@ public class AdminService {
     }
 
     private String normalizeTimeRange(String value) {
-        if (value == null) {
-            return null;
+        java.time.LocalTime[] parsed = parseTimeRange(value);
+        if (parsed == null) {
+            return value == null ? null : value.trim();
         }
-        return value.trim().replaceAll("\\s+", "");
+        return String.format(java.util.Locale.US,
+                "%02d:%02d-%02d:%02d",
+                parsed[0].getHour(), parsed[0].getMinute(),
+                parsed[1].getHour(), parsed[1].getMinute());
     }
 }
