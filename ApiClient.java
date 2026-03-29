@@ -196,13 +196,9 @@ public class ApiClient {
     }
 
     public static List<Student> getAllStudents() throws Exception {
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(BASE_URL + "/admin/students"))
-                .GET()
-                .build();
-        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        HttpResponse<String> response = sendRequestWithFallback("/admin/students", "GET", null);
         if (response.statusCode() != 200) {
-            throw new Exception("Failed to load students: " + response.body());
+            throw new Exception("Failed to load students (HTTP " + response.statusCode() + "): " + response.body());
         }
         return gson.fromJson(response.body(), new TypeToken<List<Student>>(){}.getType());
     }
@@ -488,6 +484,48 @@ public class ApiClient {
             }
         }
         return days;
+    }
+
+    public static Enrollment enrollStudentInSectionAndLab(Long studentId, Long courseId, Long sectionId, String labDayOfWeek, String labTime) throws Exception {
+        java.util.Map<String, Object> payload = new java.util.LinkedHashMap<>();
+        payload.put("studentId", studentId);
+        payload.put("courseId", courseId);
+        payload.put("sectionId", sectionId);
+        payload.put("labDayOfWeek", (labDayOfWeek == null || labDayOfWeek.isBlank()) ? null : labDayOfWeek.trim());
+        payload.put("labTime", (labTime == null || labTime.isBlank()) ? null : labTime.trim());
+
+        String json = gson.toJson(payload);
+
+        HttpResponse<String> response = sendRequestWithFallback("/admin/timetable/enroll", "POST", json);
+        if (response.statusCode() == 404) {
+            throw new Exception("Failed to enroll student (HTTP 404): timetable enrollment endpoint not found on the running backend. Restart the updated Spring app.");
+        }
+        if (response.statusCode() != 200 && response.statusCode() != 201) {
+            throw new Exception("Failed to enroll student (HTTP " + response.statusCode() + "): " + response.body());
+        }
+        return gson.fromJson(response.body(), Enrollment.class);
+    }
+
+    public static List<Enrollment> getStudentCoursesByStudentId(Long studentId) throws Exception {
+        HttpResponse<String> response = sendRequestWithFallback("/admin/timetable/student/" + studentId + "/courses", "GET", null);
+        if (response.statusCode() == 404) {
+            throw new Exception("Failed to load student courses (HTTP 404): timetable student-courses endpoint not found on the running backend. Restart the updated Spring app.");
+        }
+        if (response.statusCode() != 200) {
+            throw new Exception("Failed to load student courses (HTTP " + response.statusCode() + "): " + response.body());
+        }
+        return gson.fromJson(response.body(), new TypeToken<List<Enrollment>>(){}.getType());
+    }
+
+    public static void deleteStudentCourseByStudentId(Long studentId, Long courseId) throws Exception {
+        HttpResponse<String> response = sendRequestWithFallback(
+                "/admin/timetable/student/" + studentId + "/courses/" + courseId,
+                "DELETE",
+                null
+        );
+        if (response.statusCode() != 200) {
+            throw new Exception("Failed to delete student course: " + response.body());
+        }
     }
 
     // Section API methods
