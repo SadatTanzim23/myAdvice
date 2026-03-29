@@ -47,10 +47,9 @@ public class myAdvice {
         },
         { //Scheduling
             {"Browse Course Sections", "View available sections & instructors"},
-            {"Build Timetable", "Select courses and time slots"},
-            {"Check Conflicts", "Detect overlapping schedules"},
+            {"Build Timetable", "Enroll students in course sections and labs"},
+            {"Student Course Enrollments", "View or delete student courses by student ID"},
             {"View Room Assignments", "Find classroom locations"},
-            {"Lab & Tutorial Matching", "Pair lectures with labs/tutorials"},
             {"Export Schedule", "Print or save your timetable"},
         },
         { //Bookings
