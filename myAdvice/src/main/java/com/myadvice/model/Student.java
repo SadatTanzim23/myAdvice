@@ -1,6 +1,10 @@
 package com.myadvice.model;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
 
 @Entity //Tells JPA this class is a database table
 public class Student {
@@ -8,29 +12,29 @@ public class Student {
     @Id //Field is marked as primary key
     @GeneratedValue(strategy = GenerationType.IDENTITY) //Auto-increments ID for each new student
     private Long id;
-    //Column named first_name, can't be empty
+    //Column named first_name can't be empty
     @Column(name = "first_name", nullable = false)
     private String firstName;
-    //Column named last_name, can't be empty
+    //Column named last_name can't be empty
     @Column(name = "last_name", nullable = false)
     private String lastName;
-    // Column named faculty_name, can't be empty
+    // Column named faculty_name can't be empty
     @Column(name="faculty_name",nullable = false)
     private String facultyName;
-    // Column named program_name, can't be empty
+    // Column named program_name can't be empty
     @Column(name="program_name",nullable = false)
     private String programName;
-    //Can't be empty, students can't have the same email
+    //Can't be empty students can't have the same email
     @Column(nullable = false, unique = true)
     private String email;
-    //Column named student_number, can't be empty, students can't have same student number
+    //Column named student_number can't be empty, students can't have same student number
     @Column(name = "student_number", nullable = false, unique = true)
     private String studentNumber;
 
-    //Empty constructor required for JPA to create Student object
+    //constructor
     public Student() {}
 
-    //Full constructor to create new Student with all data
+    //constructor
     public Student(String firstName, String lastName, String email, String studentNumber) {
         this.firstName = firstName;
         this.lastName = lastName;
@@ -38,7 +42,7 @@ public class Student {
         this.studentNumber = studentNumber;
     }
 
-    //Getters
+    //Getters and setters
     public Long getId() {
         return id;
     }
@@ -60,7 +64,6 @@ public class Student {
     public String getProgramName() {
         return programName;
     }
-    //Setters
     public void setId(Long id) {
         this.id = id;
     }

@@ -1,17 +1,21 @@
 package com.myadvice.model;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
 
-@Entity //Tells JPA this class is a database table
+@Entity //tells JPA this class is a database table
 public class Faculty {
-    @Id //Field is marked as primary key
-    @GeneratedValue(strategy = GenerationType.IDENTITY) //Auto-increments ID for each new faculty in database
+    @Id //field is marked as primary key
+    @GeneratedValue(strategy = GenerationType.IDENTITY)//auto increments ID for each new faculty in database
     private Long id;
 
-    @Column (name = "first_name", nullable = false) //Names column first_name in database
+    @Column (name = "first_name", nullable = false)//names column first_name in database
     private String firstName;
 
-    @Column(name = "last_name", nullable = false) //Name in DB, and can't be empty
+    @Column(name = "last_name", nullable = false)//name in DB, and can't be empty
     private String lastName;
 
     @Column(nullable = false, unique = true)
@@ -20,9 +24,9 @@ public class Faculty {
     @Column(nullable = false)
     private String department;
 
-    public Faculty() {} //Empty constructor JPA needs to create Faculty objects
+    public Faculty() {}//empty constructor JPA needs to create Faculty objects
 
-    //Full constructor
+    //full constructor
     public Faculty(String firstName, String lastName, String email, String department) { //Creates new faculty with data
         this.firstName = firstName;
         this.lastName = lastName;

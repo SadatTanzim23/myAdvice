@@ -1,22 +1,28 @@
 package com.myadvice.model;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 
-@Entity //Class is a database table
+@Entity//class is a database table
 public class Section {
-    @Id //Primary key
+    @Id//primary key
     @GeneratedValue(strategy = GenerationType.IDENTITY) //Auto-increments
     private Long id;
 
-    @ManyToOne //Many sections can be linked to same course
+    @ManyToOne//many sections can be linked to same course
     @JoinColumn(name = "course_id", nullable = false)
     private Course course;
 
-    @ManyToOne //Many sections can be linked to same faculty
+    @ManyToOne//many sections can be linked to same faculty
     @JoinColumn(name = "faculty_id", nullable = false)
     private Faculty faculty;
 
-    //Column name, can't be empty
+    //column name can't be empty
     @Column(name = "section_number", nullable = false)
     private String sectionNumber;
 
@@ -24,7 +30,7 @@ public class Section {
     @Column(nullable = false)
     private Integer capacity;
 
-    //Column name, can't be empty
+    //column name can't be empty
     @Column(name = "enrolled_count", nullable = false)
     private Integer enrolledCount;
 
@@ -45,7 +51,7 @@ public class Section {
     //Empty constructor
     public Section() {}
 
-    //Full constructor
+    //constructor
     public Section(Course course, Faculty faculty, String sectionNumber, Integer capacity, Integer enrolledCount, String instructorName, String dayOfWeek) {
         this.course = course;
         this.faculty = faculty;

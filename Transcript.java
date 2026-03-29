@@ -5,8 +5,8 @@ public class Transcript {
     private Double grade;
     private String term;
 
-    public Transcript() {}
-
+    public Transcript() {}//consturctors
+    ///getters and setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 

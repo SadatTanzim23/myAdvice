@@ -1,8 +1,15 @@
-import java.awt.*;
-import java.awt.event.*;
-import java.awt.geom.*;
-import javax.swing.*;
-import javax.swing.border.*;
+import java.awt.BorderLayout;
+import java.awt.Font;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.awt.geom.RoundRectangle2D;
+
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.border.EmptyBorder;
 
 public class ActionCard extends JPanel {//Each module showing the action available inside
     private Runnable onClickAction;
@@ -23,7 +30,7 @@ public class ActionCard extends JPanel {//Each module showing the action availab
         add(t, BorderLayout.NORTH);
         add(d, BorderLayout.CENTER);
         
-        // Handle clicks on both the panel and its child labels.
+        //handle clicks on both the panel and its child labels.
         MouseAdapter clickHandler = new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {

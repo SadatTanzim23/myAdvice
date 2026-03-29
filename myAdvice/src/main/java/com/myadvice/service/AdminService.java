@@ -1,12 +1,25 @@
 package com.myadvice.service;
 
-import com.myadvice.model.*;
-import com.myadvice.repository.*;
+import java.time.LocalTime;
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalTime;
-import java.util.List;
+import com.myadvice.model.Course;
+import com.myadvice.model.Enrollment;
+import com.myadvice.model.Faculty;
+import com.myadvice.model.Schedule;
+import com.myadvice.model.Section;
+import com.myadvice.model.Student;
+import com.myadvice.model.Transcript;
+import com.myadvice.repository.CourseRepository;
+import com.myadvice.repository.EnrollmentRepository;
+import com.myadvice.repository.FacultyRepository;
+import com.myadvice.repository.ScheduleRepository;
+import com.myadvice.repository.SectionRepository;
+import com.myadvice.repository.StudentRepository;
+import com.myadvice.repository.TranscriptRepository;
 
 @Service
 public class AdminService {
@@ -42,20 +55,20 @@ public class AdminService {
         return courseRepository.save(course);
     }
 
-    // Edit an existing course
+    //edit an existing course
     public Course editCourse(Long id, Course updatedCourse){
-        // Check if course exists
+        //check if course exists
         Course existingCourse = courseRepository.findById(id).orElseThrow(() -> new RuntimeException("Course not found"));
-        // Update course details
+        //update course details
         existingCourse.setCourseCode(updatedCourse.getCourseCode());
         existingCourse.setCourseName(updatedCourse.getCourseName());
         existingCourse.setCredits(updatedCourse.getCredits());
         existingCourse.setDescription(updatedCourse.getDescription());
-        // Save updated course to the database
+        //save updated course to the database
         return courseRepository.save(existingCourse);
     }
 
-    // Delete an existing course
+    //delete an existing course
     public void deleteCourse(Long id){
         // Check if course exists, or throw an exception if not
         courseRepository.findById(id).orElseThrow(() -> new RuntimeException("Course not found"));
@@ -64,40 +77,40 @@ public class AdminService {
     }
 
     public Course addPrerequisite(Long courseId, Long prerequisiteId){
-        // Find the course and prerequisite by ID
+        //find the course and prerequisite by ID
         Course course = courseRepository.findById(courseId).orElseThrow(() -> new RuntimeException("Course not found"));
         Course prerequisite = courseRepository.findById(prerequisiteId).orElseThrow(() -> new RuntimeException("Prerequisite requested is not found"));
 
-        // Prevent adding a prerequisite to itself
+        //prevent adding a prerequisite to itself
         if(courseId.equals(prerequisiteId)){
             throw new RuntimeException("Prerequisite cannot be the same as the course");
         }
-        // Prevent adding a prerequisite that already exists
+        //prevent adding a prerequisite that already exists
         if(course.getPrerequisites().contains(prerequisite)){
             throw new RuntimeException("Prerequisite already exists");
         }
-        // Prevent circular prerequisites (direct or indirect)
+        //prevent circular prerequisites (direct or indirect)
         if (wouldCreatePrerequisiteCycle(course, prerequisite)) {
             throw new RuntimeException("Cannot add prerequisite because it creates a circular dependency");
         }
-        // Add the prerequisite to the course's prerequisites list
+        //add the prerequisite to the course's prerequisites list
         course.getPrerequisites().add(prerequisite);
-        // Save the updated course back to the database
+        //save the updated course back to the database
         return courseRepository.save(course);
 
     }
 
     public Course removePrerequisite(Long courseId, Long prerequisiteId){
-        // Find the course and prerequisite by ID
+        //find the course and prerequisite by ID
         Course course = courseRepository.findById(courseId).orElseThrow(() -> new RuntimeException("Course not found"));
         Course prerequisite = courseRepository.findById(prerequisiteId).orElseThrow(() -> new RuntimeException("Prerequisite requested is not found"));
-        // Message to send if prerequisite does not exist
+        //message to send if prerequisite does not exist
         if(!course.getPrerequisites().contains(prerequisite)){
             throw new RuntimeException("Prerequisite does not exist");
         }
-        // Remove the prerequisite from the course's prerequisite list
+        //remove the prerequisite from the course's prerequisite list
         course.getPrerequisites().remove(prerequisite);
-        // Save the updated course back to the database
+        //save the updated course back to the database
         return courseRepository.save(course);
     }
 
