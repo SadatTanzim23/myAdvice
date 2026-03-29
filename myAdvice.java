@@ -20,57 +20,57 @@ public class myAdvice {
     static final Font FONT_BTN_SUB = new Font("Dialog", Font.PLAIN, 11);
     //id, title, subtitle
     static final String[][] MODULE_META = {
-        {"1", "Curriculum Advising","Plan your courses & program requirements"},
-        {"2", "Scheduling","Build and manage your term timetable"},
-        {"3", "Bookings","Schedule advising appointments with faculty"},
-        {"4", "System Administration","Manage curriculum, profiles & transcripts"},
-        {"5", "Reports & Dashboards","Analytics on students, faculty & courses"},
+        {"1", "Curriculum Advising", "Plan degree requirements and course pathways"},
+        {"2", "Scheduling", "Find sections and manage student enrollments"},
+        {"3", "Bookings", "Book and manage advising appointments"},
+        {"4", "System Administration", "Maintain courses, sections, users, and transcripts"},
+        {"5", "Reports & Dashboards", "View operational summaries and enrollment metrics"},
     };
     //short descriptions shown on the main menu cards
     static final String[] MENU_DESCS = {
-        "Plan future courses & program requirements",
-        "Build your timetable for the upcoming year",
-        "Book advising appointments with faculty",
-        "Manage curriculum, profiles & transcripts",
-        "View analytics on students, faculty & courses",
+        "Review requirements and plan future courses",
+        "Browse sections and enroll students into timetable slots",
+        "Book, view, and update advising appointments",
+        "Manage academic data, profiles, and transcript records",
+        "Track key stats for students, faculty, and enrollments",
     };
 
     //all the action cards with their description at inside each module from the main
     static final String[][][] MODULE_ACTIONS = {
         { //Curriculum Advising
-            {"View Program Requirements", "See all required courses for your degree"},
-            {"Course Prerequisite Tree", "Visualize prerequisite chains"},
-            {"Plan Future Semesters", "Map out remaining courses"},
-            {"Check Completion Status", "Track completed vs. outstanding credits"},
-            {"Seek Faculty Advice", "Request a curriculum review"},
-            {"Export Academic Plan", "Download your plan as a PDF"},
+            {"View Degree Requirements", "See required courses for a selected student"},
+            {"View Prerequisite Map", "Check prerequisite relationships between courses"},
+            {"Plan Upcoming Semesters", "Review remaining courses before registration"},
+            {"Check Program Progress", "Compare completed and remaining requirements"},
+            {"Request Faculty Advising", "Find faculty guidance for course planning"},
+            {"Export Academic Plan", "Export the student plan for sharing"},
         },
         { //Scheduling
-            {"Browse Course Sections", "View available sections & instructors"},
-            {"Build Timetable", "Enroll students in course sections and labs"},
-            {"Student Course Enrollments", "View or delete student courses by student ID"},
-            {"View Room Assignments", "Find classroom locations"},
+            {"Find Course Sections", "Search available sections by course"},
+            {"Enroll Student (Timetable)", "Enroll a student into a section and lab"},
+            {"Manage Student Enrollments", "View or delete enrollments using student ID"},
+            {"View Room Assignments", "Check room and lab location details by section"},
         },
         { //Bookings
-            {"Book Advising Appointment",    "Reserve a slot with your advisor"          },
-            {"Browse Faculty Availability",  "See who is available and when"             },
-            {"My Upcoming Appointments",     "View and manage your bookings"             },
-            {"Cancel / Reschedule",          "Modify an existing appointment"            },
+            {"Book Advising Appointment",    "Create a new advising appointment"          },
+            {"View Faculty Availability",    "See available faculty appointment slots"    },
+            {"View My Appointments",         "Review upcoming appointments by student ID" },
+            {"Cancel or Reschedule Appointment", "Update or cancel an existing booking"   },
         },
         { //System Administration
-            {"Manage Courses",               "Add, edit, or remove course records"       },
-            {"Edit Prerequisite Structures", "Define prerequisite chains"                },
-            {"Create / Edit Timetable",      "Set up course sections & schedules"        },
-            {"Manage User Profiles",         "Update student, faculty & staff info"      },
-            {"Update Transcript Records",    "Modify grade and enrollment data"          },
+            {"Manage Courses",               "Create, update, or delete course records"  },
+            {"Manage Prerequisites",         "Add or remove prerequisite relationships"   },
+            {"Manage Sections & Timetable",  "Create, edit, or remove course sections"   },
+            {"Manage User Profiles",         "Maintain student and faculty profile data"  },
+            {"Manage Transcript Records",    "Add, edit, or delete transcript entries"   },
         },
         { //Reports & Dashboards
-            {"Student List",                 "Browse and filter all students"            },
-            {"Faculty List",                 "Browse and filter all faculty"             },
-            {"Most Active Students",         "Students with most appointments"           },
-            {"Busiest Advisors",             "Faculty with most advising load"           },
-            {"Course Enrolment Stats",       "Enrolment figures by course/section"       },
-            {"Dashboard Overview",           "At-a-glance system summary"               },
+            {"View Student List",            "Browse all students and profile details"   },
+            {"View Faculty List",            "Browse all faculty and department details" },
+            {"Most Active Students",         "Identify students with highest activity"   },
+            {"Busiest Advisors",             "Identify advisors with highest workload"   },
+            {"Course Enrollment Stats",      "Review enrollment totals and capacity usage"},
+            {"System Dashboard Overview",    "View combined academic and booking metrics"},
         },
     };
 

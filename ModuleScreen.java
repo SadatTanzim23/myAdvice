@@ -259,11 +259,11 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
             ActionCard card = new ActionCard(items[i][0], items[i][1]);
 
             // Add click handlers for course management
-            if (items[i][0].equals("Browse Course Sections")) {
+            if (items[i][0].equals("Browse Course Sections") || items[i][0].equals("Find Course Sections")) {
                 card.setOnClickAction(this::showSchedulingBrowseSectionsDialog);
-            } else if (items[i][0].equals("Build Timetable")) {
+            } else if (items[i][0].equals("Build Timetable") || items[i][0].equals("Enroll Student (Timetable)")) {
                 card.setOnClickAction(this::showSchedulingBuildTimetableDialog);
-            } else if (items[i][0].equals("Student Course Enrollments")) {
+            } else if (items[i][0].equals("Student Course Enrollments") || items[i][0].equals("Manage Student Enrollments")) {
                 card.setOnClickAction(this::showSchedulingStudentCoursesDialog);
             } else if (items[i][0].equals("View Room Assignments")) {
                 card.setOnClickAction(this::showSchedulingRoomAssignmentsDialog);
@@ -271,33 +271,33 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
                 card.setOnClickAction(this::showSchedulingExportDialog);
             } else if (items[i][0].equals("Manage Courses")) {
                 card.setOnClickAction(this::showManageCoursesDialog);
-            } else if (items[i][0].equals("Edit Prerequisite Structures")) {
+            } else if (items[i][0].equals("Edit Prerequisite Structures") || items[i][0].equals("Manage Prerequisites")) {
                 card.setOnClickAction(this::showManagePrerequisitesDialog);
-            } else if (items[i][0].equals("Create / Edit Timetable")){
+            } else if (items[i][0].equals("Create / Edit Timetable") || items[i][0].equals("Manage Sections & Timetable")){
                 card.setOnClickAction(this::showManageSectionsDialog);
             } else if (items[i][0].equals("Manage User Profiles")) {
                 card.setOnClickAction(this::showManageUserProfilesDialog);
-            } else if (items[i][0].equals("Update Transcript Records")) {
+            } else if (items[i][0].equals("Update Transcript Records") || items[i][0].equals("Manage Transcript Records")) {
                 card.setOnClickAction(this::showManageTranscriptsDialog);
-            } else if (items[i][0].equals("Student List")) {
+            } else if (items[i][0].equals("Student List") || items[i][0].equals("View Student List")) {
                 card.setOnClickAction(() -> fetchReportStudentsThen(this::showStudentListDialog));
-            } else if (items[i][0].equals("Faculty List")) {
+            } else if (items[i][0].equals("Faculty List") || items[i][0].equals("View Faculty List")) {
                 card.setOnClickAction(() -> fetchReportFacultyThen(this::showFacultyListDialog));
             } else if (items[i][0].equals("Most Active Students")) {
                 card.setOnClickAction(this::showMostActiveStudentsDialog);
             } else if (items[i][0].equals("Busiest Advisors")) {
                 card.setOnClickAction(this::showBusiestAdvisorsDialog);
-            } else if (items[i][0].equals("Course Enrolment Stats")) {
+            } else if (items[i][0].equals("Course Enrolment Stats") || items[i][0].equals("Course Enrollment Stats")) {
                 card.setOnClickAction(this::showCourseEnrolmentStatsDialog);
-            } else if (items[i][0].equals("Dashboard Overview")) {
+            } else if (items[i][0].equals("Dashboard Overview") || items[i][0].equals("System Dashboard Overview")) {
                 card.setOnClickAction(this::showDashboardOverviewDialog);
             } else if (items[i][0].equals("Book Advising Appointment")) {
                 card.setOnClickAction(this::showBookAdvisingAppointmentDialog);
-            } else if (items[i][0].equals("Browse Faculty Availability")) {
+            } else if (items[i][0].equals("Browse Faculty Availability") || items[i][0].equals("View Faculty Availability")) {
                 card.setOnClickAction(this::showBrowseFacultyAvailabilityDialog);
-            } else if (items[i][0].equals("My Upcoming Appointments")) {
+            } else if (items[i][0].equals("My Upcoming Appointments") || items[i][0].equals("View My Appointments")) {
                 card.setOnClickAction(this::showMyUpcomingAppointmentsDialog);
-            } else if (items[i][0].equals("Cancel / Reschedule")) {
+            } else if (items[i][0].equals("Cancel / Reschedule") || items[i][0].equals("Cancel or Reschedule Appointment")) {
                 card.setOnClickAction(this::showCancelOrRescheduleDialog);
             }
 
