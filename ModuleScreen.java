@@ -263,12 +263,10 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
                 card.setOnClickAction(this::showSchedulingBrowseSectionsDialog);
             } else if (items[i][0].equals("Build Timetable")) {
                 card.setOnClickAction(this::showSchedulingBuildTimetableDialog);
-            } else if (items[i][0].equals("Check Conflicts")) {
-                card.setOnClickAction(this::showSchedulingCheckConflictsDialog);
+            } else if (items[i][0].equals("Student Course Enrollments")) {
+                card.setOnClickAction(this::showSchedulingStudentCoursesDialog);
             } else if (items[i][0].equals("View Room Assignments")) {
                 card.setOnClickAction(this::showSchedulingRoomAssignmentsDialog);
-            } else if (items[i][0].equals("Lab & Tutorial Matching")) {
-                card.setOnClickAction(this::showSchedulingLabTutorialMatchingDialog);
             } else if (items[i][0].equals("Export Schedule")) {
                 card.setOnClickAction(this::showSchedulingExportDialog);
             } else if (items[i][0].equals("Manage Courses")) {
@@ -2909,45 +2907,328 @@ public class ModuleScreen extends JPanel {//the module screens you go in through
     }
 
     private void showSchedulingBuildTimetableDialog() {
-        String[] options = {"All Schedules", "By Course", "By Day", "Cancel"};
-        int choice = JOptionPane.showOptionDialog(this,
-                "Choose how to view timetable data:",
-                "Build Timetable",
-                JOptionPane.DEFAULT_OPTION,
-                JOptionPane.PLAIN_MESSAGE,
-                null,
-                options,
-                options[0]);
+        fetchStudentsThen(() -> fetchCoursesThen(() -> {
+            new Thread(() -> {
+                try {
+                    List<Section> sections = ApiClient.getAllSections();
+                    if (sections == null) {
+                        sections = new ArrayList<>();
+                    }
+                    List<Section> finalSections = sections;
+                    SwingUtilities.invokeLater(() -> showSchedulingEnrollmentDialog(finalSections));
+                } catch (Exception e) {
+                    String errorMsg = e.getMessage() != null ? e.getMessage() : e.toString();
+                    SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
+                            "Error loading sections: " + errorMsg,
+                            "Error", JOptionPane.ERROR_MESSAGE));
+                }
+            }).start();
+        }));
+    }
 
-        if (choice < 0 || choice == 3) {
+    private void showSchedulingEnrollmentDialog(List<Section> sections) {
+        if (allCourses == null || allCourses.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "No courses found.", "Build Timetable", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+        if (sections == null || sections.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "No sections found.", "Build Timetable", JOptionPane.INFORMATION_MESSAGE);
             return;
         }
 
-        if (choice == 1) {
-            fetchCoursesThen(this::showSchedulingCourseTimetableDialog);
+        JPanel panel = new JPanel(new GridLayout(4, 2, 8, 8));
+        panel.setBorder(new EmptyBorder(16, 16, 16, 16));
+
+        JTextField studentIdField = new JTextField();
+        JComboBox<Course> courseCombo = new JComboBox<>(allCourses.toArray(new Course[0]));
+        JComboBox<Section> sectionCombo = new JComboBox<>();
+        JComboBox<String> labCombo = new JComboBox<>();
+
+        panel.add(new JLabel("Student ID:"));
+        panel.add(studentIdField);
+        panel.add(new JLabel("Course:"));
+        panel.add(courseCombo);
+        panel.add(new JLabel("Section:"));
+        panel.add(sectionCombo);
+        panel.add(new JLabel("Lab in Section:"));
+        panel.add(labCombo);
+
+        Runnable refreshSectionsAndLabs = () -> {
+            Course selectedCourse = (Course) courseCombo.getSelectedItem();
+            sectionCombo.removeAllItems();
+            labCombo.removeAllItems();
+            if (selectedCourse == null || selectedCourse.getId() == null) {
+                return;
+            }
+            for (Section s : sections) {
+                if (s == null || s.getCourse() == null || s.getCourse().getId() == null) continue;
+                if (selectedCourse.getId().equals(s.getCourse().getId())) {
+                    sectionCombo.addItem(s);
+                }
+            }
+        };
+
+        courseCombo.addActionListener(e -> refreshSectionsAndLabs.run());
+        sectionCombo.addActionListener(e -> {
+            labCombo.removeAllItems();
+            Section selectedSection = (Section) sectionCombo.getSelectedItem();
+            for (String option : getLabOptionsForSection(selectedSection)) {
+                labCombo.addItem(option);
+            }
+        });
+        refreshSectionsAndLabs.run();
+
+        int result = JOptionPane.showConfirmDialog(this, panel,
+                "Build Timetable - Enroll Student",
+                JOptionPane.OK_CANCEL_OPTION,
+                JOptionPane.PLAIN_MESSAGE);
+        if (result != JOptionPane.OK_OPTION) return;
+
+        String studentInput = studentIdField.getText().trim();
+        Course selectedCourse = (Course) courseCombo.getSelectedItem();
+        Section selectedSection = (Section) sectionCombo.getSelectedItem();
+        String selectedLab = (String) labCombo.getSelectedItem();
+
+        if (studentInput.isEmpty() || selectedCourse == null || selectedCourse.getId() == null || selectedSection == null || selectedSection.getId() == null) {
+            JOptionPane.showMessageDialog(this,
+                    "Please provide student, course, and section.",
+                    "Validation Error", JOptionPane.ERROR_MESSAGE);
             return;
         }
 
-        if (choice == 2) {
-            showSchedulingDayTimetableDialog();
+        String labDay = "";
+        String labTime = "";
+        if (selectedLab != null && !selectedLab.equals("No Lab")) {
+            String[] parts = selectedLab.split("\\|", 2);
+            if (parts.length == 2) {
+                labDay = parts[0].trim();
+                labTime = normalizeTimeRange(parts[1]);
+            }
+        }
+
+        if (selectedLab != null && !selectedLab.equals("No Lab") && (labDay.isEmpty() || !isValidLabTimeRange(labTime))) {
+            JOptionPane.showMessageDialog(this,
+                    "Selected lab entry has an invalid time format. Expected HH:mm-HH:mm.",
+                    "Validation Error",
+                    JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        final String labDayFinal = labDay;
+        final String labTimeFinal = labTime;
+
+        new Thread(() -> {
+            try {
+                Long studentId = resolveStudentIdInput(studentInput);
+                ApiClient.enrollStudentInSectionAndLab(studentId, selectedCourse.getId(), selectedSection.getId(), labDayFinal, labTimeFinal);
+                SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
+                        "Enrollment successful.",
+                        "Success",
+                        JOptionPane.INFORMATION_MESSAGE));
+            } catch (Exception e) {
+                String errorMsg = e.getMessage() != null ? e.getMessage() : e.toString();
+                SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
+                        "Enrollment failed: " + errorMsg,
+                        "Error",
+                        JOptionPane.ERROR_MESSAGE));
+            }
+        }).start();
+    }
+
+    private List<String> getLabOptionsForSection(Section section) {
+        List<String> options = new ArrayList<>();
+        options.add("No Lab");
+        if (section == null) return options;
+
+        String daysRaw = section.getLabDayOfWeek();
+        String timesRaw = section.getLabTime();
+        if (daysRaw == null || daysRaw.isBlank() || timesRaw == null || timesRaw.isBlank()) {
+            return options;
+        }
+
+        String[] days = java.util.Arrays.stream(daysRaw.split(","))
+                .map(String::trim)
+                .filter(v -> !v.isEmpty())
+                .toArray(String[]::new);
+        String[] times = java.util.Arrays.stream(timesRaw.split(";"))
+                .map(String::trim)
+                .filter(v -> !v.isEmpty())
+                .toArray(String[]::new);
+
+        int count = Math.min(days.length, times.length);
+        java.util.Set<String> seen = new java.util.LinkedHashSet<>();
+        for (int i = 0; i < count; i++) {
+            seen.add(days[i] + " | " + times[i]);
+        }
+        options.addAll(seen);
+        return options;
+    }
+
+    private void showSchedulingStudentCoursesDialog() {
+        JTextField studentIdField = new JTextField();
+        JPanel inputPanel = new JPanel(new GridLayout(1, 2, 8, 8));
+        inputPanel.setBorder(new EmptyBorder(12, 12, 12, 12));
+        inputPanel.add(new JLabel("Student ID:"));
+        inputPanel.add(studentIdField);
+
+        int inputResult = JOptionPane.showConfirmDialog(this,
+                inputPanel,
+                "Student Course Enrollments",
+                JOptionPane.OK_CANCEL_OPTION,
+                JOptionPane.PLAIN_MESSAGE);
+        if (inputResult != JOptionPane.OK_OPTION) {
+            return;
+        }
+
+        String studentInput = studentIdField.getText() == null ? "" : studentIdField.getText().trim();
+        if (studentInput.isEmpty()) {
+            JOptionPane.showMessageDialog(this,
+                    "Student ID is required.",
+                    "Validation Error",
+                    JOptionPane.ERROR_MESSAGE);
             return;
         }
 
         new Thread(() -> {
             try {
-                List<Schedule> schedules = ApiClient.getAllSchedules();
-                SwingUtilities.invokeLater(() -> showScheduleResultsDialog(
-                        schedules,
-                        "All Schedules",
-                        "Timetable"
-                ));
+                Long studentId = resolveStudentIdInput(studentInput);
+                List<Enrollment> enrollments = ApiClient.getStudentCoursesByStudentId(studentId);
+                if (enrollments == null) {
+                    enrollments = new ArrayList<>();
+                }
+                List<Enrollment> finalEnrollments = enrollments;
+
+                SwingUtilities.invokeLater(() -> {
+                    if (finalEnrollments.isEmpty()) {
+                        JOptionPane.showMessageDialog(this,
+                                "No enrolled courses found for this student.",
+                                "Student Course Enrollments",
+                                JOptionPane.INFORMATION_MESSAGE);
+                        return;
+                    }
+
+                    StringBuilder sb = new StringBuilder("Enrolled Courses:\n\n");
+                    for (Enrollment e : finalEnrollments) {
+                        sb.append("- ").append(formatEnrollmentForDisplay(e)).append("\n");
+                    }
+
+                    JTextArea textArea = new JTextArea(sb.toString(), 12, 55);
+                    textArea.setEditable(false);
+                    textArea.setLineWrap(true);
+                    textArea.setWrapStyleWord(true);
+
+                    JComboBox<Enrollment> enrollmentCombo = new JComboBox<>(finalEnrollments.toArray(new Enrollment[0]));
+                    enrollmentCombo.setRenderer(new DefaultListCellRenderer() {
+                        @Override
+                        public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+                            String label = formatEnrollmentForDisplay((Enrollment) value);
+                            return super.getListCellRendererComponent(list, label, index, isSelected, cellHasFocus);
+                        }
+                    });
+
+                    JPanel panel = new JPanel(new BorderLayout(0, 10));
+                    panel.setBorder(new EmptyBorder(10, 10, 10, 10));
+                    panel.add(new JScrollPane(textArea), BorderLayout.CENTER);
+
+                    JPanel deletePanel = new JPanel(new GridLayout(1, 2, 8, 8));
+                    deletePanel.add(new JLabel("Delete course:"));
+                    deletePanel.add(enrollmentCombo);
+                    panel.add(deletePanel, BorderLayout.SOUTH);
+
+                    String[] options = {"Close", "Delete Selected Course"};
+                    int choice = JOptionPane.showOptionDialog(this,
+                            panel,
+                            "Student Course Enrollments",
+                            JOptionPane.DEFAULT_OPTION,
+                            JOptionPane.PLAIN_MESSAGE,
+                            null,
+                            options,
+                            options[0]);
+
+                    if (choice != 1) {
+                        return;
+                    }
+
+                    Enrollment selectedEnrollment = (Enrollment) enrollmentCombo.getSelectedItem();
+                    Long courseId = selectedEnrollment != null && selectedEnrollment.getCourse() != null
+                            ? selectedEnrollment.getCourse().getId() : null;
+                    if (courseId == null) {
+                        JOptionPane.showMessageDialog(this,
+                                "Selected enrollment is missing a course.",
+                                "Validation Error",
+                                JOptionPane.ERROR_MESSAGE);
+                        return;
+                    }
+
+                    int confirm = JOptionPane.showConfirmDialog(this,
+                            "Delete selected course for this student?",
+                            "Confirm Delete",
+                            JOptionPane.OK_CANCEL_OPTION,
+                            JOptionPane.WARNING_MESSAGE);
+                    if (confirm != JOptionPane.OK_OPTION) {
+                        return;
+                    }
+
+                    new Thread(() -> {
+                        try {
+                            ApiClient.deleteStudentCourseByStudentId(studentId, courseId);
+                            SwingUtilities.invokeLater(() -> {
+                                JOptionPane.showMessageDialog(this,
+                                        "Student course deleted successfully.",
+                                        "Success",
+                                        JOptionPane.INFORMATION_MESSAGE);
+                                showSchedulingStudentCoursesDialog();
+                            });
+                        } catch (Exception ex) {
+                            String errorMsg = ex.getMessage() != null ? ex.getMessage() : ex.toString();
+                            SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
+                                    "Failed to delete student course: " + errorMsg,
+                                    "Error",
+                                    JOptionPane.ERROR_MESSAGE));
+                        }
+                    }).start();
+                });
             } catch (Exception e) {
                 String errorMsg = e.getMessage() != null ? e.getMessage() : e.toString();
                 SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
-                        "Error loading timetable: " + errorMsg,
-                        "Error", JOptionPane.ERROR_MESSAGE));
+                        "Failed to load student courses: " + errorMsg,
+                        "Error",
+                        JOptionPane.ERROR_MESSAGE));
             }
         }).start();
+    }
+
+    private String formatEnrollmentForDisplay(Enrollment enrollment) {
+        if (enrollment == null) {
+            return "N/A";
+        }
+
+        String courseCode = (enrollment.getCourse() != null && enrollment.getCourse().getCourseCode() != null)
+                ? enrollment.getCourse().getCourseCode() : "N/A";
+        String courseName = (enrollment.getCourse() != null && enrollment.getCourse().getCourseName() != null)
+                ? enrollment.getCourse().getCourseName() : "N/A";
+        String sectionNo = (enrollment.getSection() != null && enrollment.getSection().getSectionNumber() != null)
+                ? enrollment.getSection().getSectionNumber() : "N/A";
+
+        String labText = "No Lab";
+        String labDay = enrollment.getLabDayOfWeek();
+        String labTime = enrollment.getLabTime();
+        if (labDay != null && !labDay.isBlank() && labTime != null && !labTime.isBlank()) {
+            labText = labDay.trim() + " " + normalizeTimeRange(labTime);
+        }
+
+        return courseCode + " - " + courseName + " | Sec " + sectionNo + " | Lab: " + labText;
+    }
+
+    private String normalizeTimeRange(String value) {
+        if (value == null) {
+            return "";
+        }
+        String compact = value.trim().replaceAll("\\s+", "");
+        if (compact.matches("\\d{2}:\\d{2}-\\d{2}:\\d{2}")) {
+            return compact;
+        }
+        return value.trim();
     }
 
     private void showSchedulingCourseTimetableDialog() {
