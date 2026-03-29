@@ -1,6 +1,8 @@
 package com.myadvice.controller;
 
+import com.myadvice.dto.EnrollmentRequest;
 import com.myadvice.model.Course;
+import com.myadvice.model.Enrollment;
 import com.myadvice.model.Faculty;
 import com.myadvice.model.Section;
 import com.myadvice.model.Student;
@@ -210,6 +212,40 @@ public class AdminController {
     @DeleteMapping("/sections/delete/{id}")
     public Section deleteSection(@PathVariable("id") Long id){
         return adminService.removeSection(id);
+    }
+
+    @PostMapping("/timetable/enroll")
+    public Enrollment enrollStudentInSectionAndLab(@RequestBody EnrollmentRequest request) {
+        try {
+            return adminService.enrollStudentInSectionAndLab(
+                    request.getStudentId(),
+                    request.getCourseId(),
+                    request.getSectionId(),
+                    request.getLabDayOfWeek(),
+                    request.getLabTime()
+            );
+        } catch (RuntimeException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage(), e);
+        }
+    }
+
+    @GetMapping("/timetable/student/{studentId}/courses")
+    public List<Enrollment> viewStudentCourses(@PathVariable("studentId") Long studentId) {
+        try {
+            return adminService.viewStudentCourses(studentId);
+        } catch (RuntimeException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage(), e);
+        }
+    }
+
+    @DeleteMapping("/timetable/student/{studentId}/courses/{courseId}")
+    public Enrollment deleteStudentCourse(@PathVariable("studentId") Long studentId,
+                                          @PathVariable("courseId") Long courseId) {
+        try {
+            return adminService.removeStudentCourse(studentId, courseId);
+        } catch (RuntimeException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage(), e);
+        }
     }
 
 }
