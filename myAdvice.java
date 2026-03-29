@@ -50,7 +50,6 @@ public class myAdvice {
             {"Build Timetable", "Enroll students in course sections and labs"},
             {"Student Course Enrollments", "View or delete student courses by student ID"},
             {"View Room Assignments", "Find classroom locations"},
-            {"Export Schedule", "Print or save your timetable"},
         },
         { //Bookings
             {"Book Advising Appointment",    "Reserve a slot with your advisor"          },
