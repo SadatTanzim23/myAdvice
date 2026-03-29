@@ -29,6 +29,9 @@ public class AdminService {
     @Autowired
     private ScheduleRepository scheduleRepository;
 
+    @Autowired
+    private EnrollmentRepository enrollmentRepository;
+
     // Add a new course to the database
     public Course addCourse(Course course){
         // Check if course already exists
@@ -361,5 +364,153 @@ public class AdminService {
 
      public List<Schedule> viewSchedules(){
         return scheduleRepository.findAll();
+    }
+
+    public Enrollment enrollStudentInSectionAndLab(Long studentId, Long courseId, Long sectionId, String labDayOfWeek, String labTime) {
+        if (studentId == null || courseId == null || sectionId == null) {
+            throw new RuntimeException("Student, course, and section are required");
+        }
+
+        Student student = studentRepository.findById(studentId)
+                .orElseThrow(() -> new RuntimeException("Student not found"));
+        Course course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new RuntimeException("Course not found"));
+        Section section = sectionRepository.findById(sectionId)
+                .orElseThrow(() -> new RuntimeException("Section not found"));
+
+        if (section.getCourse() == null || section.getCourse().getId() == null || !section.getCourse().getId().equals(courseId)) {
+            throw new RuntimeException("Selected section does not belong to the selected course");
+        }
+
+        int enrolledCount = section.getEnrolledCount() == null ? 0 : section.getEnrolledCount();
+        int capacity = section.getCapacity() == null ? 0 : section.getCapacity();
+        if (capacity > 0 && enrolledCount >= capacity) {
+            throw new RuntimeException("Selected section is full");
+        }
+
+        if (enrollmentRepository.existsByStudentIdAndCourseId(studentId, courseId)) {
+            throw new RuntimeException("Student is already enrolled in this course");
+        }
+
+        if (enrollmentRepository.existsByStudentIdAndSectionId(studentId, sectionId)) {
+            throw new RuntimeException("Student is already enrolled in this section");
+        }
+
+        List<Enrollment> existing = enrollmentRepository.findByStudentId(studentId);
+
+        // Check lecture conflicts using schedule table for existing and target courses.
+        List<Schedule> targetSchedules = scheduleRepository.findByCourse(course);
+        for (Enrollment current : existing) {
+            if (current.getCourse() == null) continue;
+            List<Schedule> currentSchedules = scheduleRepository.findByCourse(current.getCourse());
+            for (Schedule a : targetSchedules) {
+                for (Schedule b : currentSchedules) {
+                    if (schedulesOverlap(a, b)) {
+                        throw new RuntimeException("Time conflict detected with an already enrolled section");
+                    }
+                }
+            }
+        }
+
+        // If lab is chosen, validate and check conflicts with existing selected labs.
+        if ((labDayOfWeek == null || labDayOfWeek.isBlank()) ^ (labTime == null || labTime.isBlank())) {
+            throw new RuntimeException("Both lab day and lab time are required when selecting a lab");
+        }
+
+        if (labDayOfWeek != null && !labDayOfWeek.isBlank()) {
+            if (!isValidTimeRange(labTime)) {
+                throw new RuntimeException("Lab time must be in HH:mm-HH:mm format");
+            }
+            for (Enrollment current : existing) {
+                if (current.getLabDayOfWeek() == null || current.getLabTime() == null) continue;
+                if (labOverlap(labDayOfWeek, labTime, current.getLabDayOfWeek(), current.getLabTime())) {
+                    throw new RuntimeException("Lab time conflict detected with an already enrolled lab");
+                }
+            }
+        }
+
+        Enrollment enrollment = new Enrollment(student, course, section,
+                (labDayOfWeek == null || labDayOfWeek.isBlank()) ? null : labDayOfWeek.trim(),
+                (labTime == null || labTime.isBlank()) ? null : normalizeTimeRange(labTime));
+        Enrollment saved = enrollmentRepository.save(enrollment);
+        section.setEnrolledCount(enrolledCount + 1);
+        sectionRepository.save(section);
+        return saved;
+    }
+
+    public List<Enrollment> viewStudentCourses(Long studentId) {
+        if (studentId == null) {
+            throw new RuntimeException("Student is required");
+        }
+        studentRepository.findById(studentId)
+                .orElseThrow(() -> new RuntimeException("Student not found"));
+        return enrollmentRepository.findByStudentId(studentId);
+    }
+
+    public Enrollment removeStudentCourse(Long studentId, Long courseId) {
+        if (studentId == null || courseId == null) {
+            throw new RuntimeException("Student and course are required");
+        }
+
+        studentRepository.findById(studentId)
+                .orElseThrow(() -> new RuntimeException("Student not found"));
+        courseRepository.findById(courseId)
+                .orElseThrow(() -> new RuntimeException("Course not found"));
+
+        Enrollment enrollment = enrollmentRepository.findFirstByStudentIdAndCourseId(studentId, courseId)
+                .orElseThrow(() -> new RuntimeException("Enrollment not found for student and course"));
+
+        enrollmentRepository.delete(enrollment);
+
+        Section section = enrollment.getSection();
+        if (section != null) {
+            int current = section.getEnrolledCount() == null ? 0 : section.getEnrolledCount();
+            section.setEnrolledCount(Math.max(0, current - 1));
+            sectionRepository.save(section);
+        }
+
+        return enrollment;
+    }
+
+    private boolean schedulesOverlap(Schedule a, Schedule b) {
+        if (a == null || b == null) return false;
+        if (a.getDayOfWeek() == null || b.getDayOfWeek() == null) return false;
+        if (a.getStartTime() == null || a.getEndTime() == null || b.getStartTime() == null || b.getEndTime() == null) return false;
+        if (!a.getDayOfWeek().trim().equalsIgnoreCase(b.getDayOfWeek().trim())) return false;
+        return a.getStartTime().isBefore(b.getEndTime()) && b.getStartTime().isBefore(a.getEndTime());
+    }
+
+    private boolean labOverlap(String dayA, String timeA, String dayB, String timeB) {
+        if (dayA == null || dayB == null || timeA == null || timeB == null) return false;
+        if (!dayA.trim().equalsIgnoreCase(dayB.trim())) return false;
+        java.time.LocalTime[] a = parseTimeRange(timeA);
+        java.time.LocalTime[] b = parseTimeRange(timeB);
+        return a != null && b != null && a[0].isBefore(b[1]) && b[0].isBefore(a[1]);
+    }
+
+    private boolean isValidTimeRange(String value) {
+        return parseTimeRange(value) != null;
+    }
+
+    private java.time.LocalTime[] parseTimeRange(String value) {
+        if (value == null) return null;
+        String v = value.trim();
+        if (!v.matches("\\d{2}:\\d{2}\\s*-\\s*\\d{2}:\\d{2}")) return null;
+        try {
+            String[] parts = v.split("\\s*-\\s*");
+            java.time.LocalTime start = java.time.LocalTime.parse(parts[0]);
+            java.time.LocalTime end = java.time.LocalTime.parse(parts[1]);
+            if (!end.isAfter(start)) return null;
+            return new java.time.LocalTime[]{start, end};
+        } catch (Exception ex) {
+            return null;
+        }
+    }
+
+    private String normalizeTimeRange(String value) {
+        if (value == null) {
+            return null;
+        }
+        return value.trim().replaceAll("\\s+", "");
     }
 }
