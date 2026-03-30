@@ -4,7 +4,7 @@ A full-stack Java-based Student Advising System built for the University of Wind
 
 ---
 
-## Table of Contents
+## <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Objects/Bookmark%20Tabs.png" alt="Bookmark Tabs" width="35" height="35" /> Table of Contents 
 <!-- - [Team](#team) -->
 - [Project Overview](#project-overview)
 - [Tech Stack](#tech-stack)
@@ -19,7 +19,7 @@ A full-stack Java-based Student Advising System built for the University of Wind
 
 ---
 
-## Project Overview
+## <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Hand%20gestures/Eye.png" alt="Eye" width="35" height="35" /> Project Overview
 
 myAdvice is the pilot implementation of the **Student Advising System (SAS)** for the University of Windsor's School of Computer Science. Developed by **Student Advising on Demand Inc. (SAD)**, the system provides five core modules:
 
@@ -44,7 +44,7 @@ myAdvice is the pilot implementation of the **Student Advising System (SAS)** fo
 ---
 -->
 
-## Tech Stack
+## <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Objects/Hammer%20and%20Wrench.png" alt="Hammer and Wrench" width="35" height="35" /> Tech Stack
 
 ### Frontend
 - **Java Swing / AWT** — Desktop GUI framework
@@ -72,7 +72,7 @@ myAdvice is the pilot implementation of the **Student Advising System (SAS)** fo
 
 ---
 
-## System Architecture
+## <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Objects/Triangular%20Ruler.png" alt="Triangular Ruler" width="35" height="35" /> System Architecture
 
 ```
 ┌─────────────────────────────────────────────────────┐
@@ -102,7 +102,7 @@ myAdvice is the pilot implementation of the **Student Advising System (SAS)** fo
 
 ---
 
-## Features
+## <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Activities/Crystal%20Ball.png" alt="Crystal Ball" width="35" height="35"/> Features
 
 ### Curriculum Advising
 - View remaining courses required for degree completion
@@ -136,7 +136,7 @@ myAdvice is the pilot implementation of the **Student Advising System (SAS)** fo
 - Course enrolment statistics
 
 ---
-## Getting Started
+## <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Objects/Bow%20and%20Arrow.png" alt="Bow and Arrow" width="35" height="35"/> Getting Started
 
 ### Step 1 — Clone the Repository
 ```bash
@@ -169,7 +169,7 @@ Now follow the Prerequisites, Database Setup, and Running Locally sections below
 
 ---
 
-## Prerequisites
+## <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Objects/Memo.png" alt="Memo" width="35" height="35"/> Prerequisites
 
 Make sure the following are installed before running the project:
 
@@ -182,7 +182,7 @@ Make sure the following are installed before running the project:
 
 ---
 
-## Database Setup
+## <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Objects/Card%20File%20Box.png" alt="Card File Box" width="35" height="35"/> Database Setup
 
 ### Step 1 — Start MySQL
 ```bash
@@ -225,7 +225,7 @@ SELECT COUNT(*) FROM course;    -- Should return 10
 
 ---
 
-## Running Locally
+## <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Objects/Desktop%20Computer.png" alt="Desktop Computer" width="35" height="35"/> Running Locally
 
 The application requires **three components** running simultaneously:
 
@@ -277,7 +277,7 @@ java -cp .;json.jar;gson.jar myAdvice
 
 ---
 
-## Database Configuration
+## <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Objects/Card%20Index%20Dividers.png" alt="Card Index Dividers" width="35" height="35"/> Database Configuration
 
 The backend connects to the database using `myAdvice/src/main/resources/application.properties`:
 
@@ -294,7 +294,7 @@ spring.jpa.show-sql=true
 
 ---
 
-## Project Structure
+## <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Objects/Chains.png" alt="Chains" width="35" height="35"/> Project Structure
 
 ```
 myAdvice/
@@ -353,7 +353,7 @@ myAdvice/
 
 ---
 
-## API Endpoints
+## <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Objects/DNA.png" alt="DNA" width="35" height="35"/> API Endpoints
 
 ### Bookings `/bookings`
 | Method | Endpoint | Description |
@@ -403,7 +403,7 @@ myAdvice/
 
 ---
 
-## Deployment
+## <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Travel%20and%20places/Rocket.png" alt="Rocket" width="35" height="35"/> Deployment
 
 ### Local Deployment
 The application is designed to run locally with MySQL. See [Running Locally](#running-locally) above.
@@ -421,12 +421,27 @@ The University of Windsor SCS VM was explored as a deployment option however the
 
 ---
 
-## Known Limitations
+## <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Symbols/Double%20Exclamation%20Mark.png" alt="Double Exclamation Mark" width="35" height="35"/> Known Limitations
 
 - The Swing GUI connects to `localhost:8080` by default — update `BASE_URL` in `ModuleScreen.java` to point to a remote server for non-local use
 - Free F1 Azure tier has a 60-minute CPU limit per day
 - The application does not implement user authentication — all users access all modules
 
 ---
+### SNEAK PEAK <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Hand%20gestures/Eyes.png" alt="Eyes" width="40" height="40" />
 
-*Developed for COMP 2800 — Software Development | University of Windsor | Winter 2026*
+<img width="1582" height="1282" alt="image" src="https://github.com/user-attachments/assets/85baeb0e-d828-41fd-bb92-1db92a8c8f70"/>
+<img width="1588" height="1282" alt="image" src="https://github.com/user-attachments/assets/b54dfa0c-26c4-407a-8f11-1b2b7c0a8bdd"/>
+<img width="1740" height="1296" alt="image" src="https://github.com/user-attachments/assets/3afaa9d0-e176-4c89-8b90-2472ca8cd0b4"/>
+<img width="798" height="639" alt="Screenshot 2026-03-29 at 5 05 32 PM" src="https://github.com/user-attachments/assets/b33bb28b-225a-4f31-a87d-d0e0344a971b"/> <img width="797" height="644" alt="Screenshot 2026-03-29 at 5 06 09 PM" src="https://github.com/user-attachments/assets/d574dedf-c678-4769-b70c-f87cadd9bfbb"/> <img width="798" height="646" alt="Screenshot 2026-03-29 at 5 06 42 PM" src="https://github.com/user-attachments/assets/625b9fa3-c880-4aa0-bb81-9702fc82c6d8"/> <img width="795" height="648" alt="Screenshot 2026-03-29 at 5 07 18 PM" src="https://github.com/user-attachments/assets/72d31098-d54a-484a-9f7b-8b703d5a01a7"/>
+
+
+
+
+
+
+
+
+
+
+
